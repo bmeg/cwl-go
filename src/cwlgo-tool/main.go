@@ -5,7 +5,9 @@ import (
   "fmt"
   "flag"
   "cwl"
+  "log"
   "cwl/engine"
+  "encoding/json"
 )
 
 
@@ -34,13 +36,26 @@ func main() {
   cwl_doc := cwl.Parse( flag.Arg(0) )
   inputs, _ := cwl.InputParse( flag.Arg(1) )
 
-  if true {
-    out := cwl.Evaluate(cwl_doc, inputs)
-    out.Write(os.Stdout)
-    os.Stdout.Write([]byte("\n"))
-  } else {
-    runner := cwl_engine.NewLocalRunner(config)
-    runner.RunCommand(cwl_doc, inputs)
+  runner := cwl_engine.NewLocalRunner(config)
+  
+  graphState := cwl_doc.NewGraphState(inputs)
+  for !cwl_doc.Done(graphState) {
+    for _, step := range cwl_doc.ReadySteps(graphState) {
+      job, err := cwl_doc.GenerateJob(step, graphState)
+      if err != nil {
+        log.Printf("%s", err)
+        return
+      }
+      out, err := runner.RunCommand(job)
+      if err != nil {
+        log.Printf("%s", err)
+        return
+      }
+      graphState = cwl_doc.UpdateStepResults(graphState, step, out)
+    }
   }
+  out := cwl_doc.GetResults(graphState)
+  o, _ := json.Marshal(out)
+  fmt.Printf(string(o))
   
 }
