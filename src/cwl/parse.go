@@ -16,9 +16,46 @@ func InputParse(path string) (JSONDict, error) {
 	if err != nil {
 		return nil, err
 	}
-	doc := make(JSONDict)
+	doc := make(map[interface{}]interface{})
 	err = yaml.Unmarshal(source, &doc)
-	return doc, err
+	x, _ := filepath.Abs(path)
+	base_path := filepath.Dir(x)
+
+	out := AdjustInputs(doc, base_path).(map[interface{}]interface{})
+	log.Printf("Inputs: %#v", out)
+	return out, err
+}
+
+func AdjustInputs(input interface{}, basePath string) interface{} {
+	if base, ok := input.(map[interface{}]interface{}); ok {
+		out := map[interface{}]interface{}{}
+		if class, ok := base["class"]; ok {
+			log.Printf("class: %s", class)
+			if class == "File" {
+				for k, v := range base {
+					if k == "path" {
+						out["path"] = filepath.Join(basePath, v.(string))
+					} else if k == "location" {
+						out["location"] = filepath.Join(basePath, v.(string))
+					} else {
+						out[k] = v
+					}
+				}
+			}
+		} else {
+			for k, v := range base {
+				out[k] = AdjustInputs(v, basePath)
+			}
+		}
+		return out
+	} else if base, ok := input.([]interface{}); ok {
+		out := []interface{}{}
+		for _, i := range base {
+			out = append(out, AdjustInputs(i, basePath))
+		}
+		return out
+	}
+	return input
 }
 
 func (self *JSONDict) Write(o io.Writer) {

@@ -2,7 +2,7 @@ package cwl
 
 type CWLDocData map[string]interface{}
 
-type JSONDict map[string]interface{}
+type JSONDict map[interface{}]interface{}
 
 type GraphState map[string]interface{}
 
