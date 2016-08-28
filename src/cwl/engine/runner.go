@@ -1,11 +1,9 @@
-
 package cwl_engine
 
-
 import (
-  "cwl"
+	"cwl"
 )
 
 type CWLRunner interface {
-  RunCommand(cwl.Job) (cwl.JSONDict, error)
+	RunCommand(cwl.Job) (cwl.JSONDict, error)
 }

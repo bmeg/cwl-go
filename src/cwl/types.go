@@ -7,7 +7,15 @@ type JSONDict map[string]interface{}
 type GraphState map[string]interface{}
 
 type Job struct {
-	Cmd []string
+	Cmd   []string
+	Files []JobFile
+}
+
+type JobFile struct {
+	Path     string
+	Location string
+	Dir      bool
+	Output   bool
 }
 
 type CWLDoc interface {
@@ -33,8 +41,6 @@ type cmdArg struct {
 	position int
 	value    []string
 }
-
-type cmdArgArray []cmdArg
 
 type CommandInput struct {
 	Id            string

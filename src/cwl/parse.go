@@ -7,6 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"path"
+	"path/filepath"
 )
 
 func InputParse(path string) (JSONDict, error) {
@@ -27,21 +29,22 @@ func (self *JSONDict) Write(o io.Writer) {
 	o.Write(jout)
 }
 
-func Parse(path string) CWLDoc {
-	source, err := ioutil.ReadFile(path)
+func Parse(cwl_path string) CWLDoc {
+	source, err := ioutil.ReadFile(cwl_path)
 	if err != nil {
 		panic(err)
 	}
 	doc := make(CWLDocData)
 	err = yaml.Unmarshal(source, &doc)
-
+	x, _ := filepath.Abs(cwl_path)
+	base_path := filepath.Dir(x)
 	if doc["class"].(string) == "CommandLineTool" {
-		return NewCommandLineTool(doc)
+		return NewCommandLineTool(doc, base_path)
 	}
 	return nil
 }
 
-func NewCommandLineTool(doc CWLDocData) CWLDoc {
+func NewCommandLineTool(doc CWLDocData, cwl_path string) CWLDoc {
 	log.Printf("CommandLineTool: %v", doc)
 	out := CommandLineTool{}
 	out.Inputs = make(map[string]CommandInput)
@@ -73,7 +76,7 @@ func NewCommandLineTool(doc CWLDocData) CWLDoc {
 	if base, ok := doc["inputs"]; ok {
 		if base_map, ok := base.(map[string]interface{}); ok {
 			for k, v := range base_map {
-				n, err := NewCommandInput(v)
+				n, err := NewCommandInput(v, cwl_path)
 				if err == nil {
 					n.Id = k
 					out.Inputs[n.Id] = n
@@ -82,7 +85,7 @@ func NewCommandLineTool(doc CWLDocData) CWLDoc {
 		} else if base_array, ok := base.([]interface{}); ok {
 			log.Printf("Input array: %d", len(base_array))
 			for _, x := range base_array {
-				n, err := NewCommandInput(x)
+				n, err := NewCommandInput(x, cwl_path)
 				if err == nil {
 					out.Inputs[n.Id] = n
 				} else {
@@ -100,6 +103,8 @@ func NewCommandLineTool(doc CWLDocData) CWLDoc {
 	return out
 }
 
+type cmdArgArray []cmdArg
+
 func (self cmdArgArray) Len() int {
 	return len(self)
 }
@@ -112,7 +117,7 @@ func (self cmdArgArray) Swap(i, j int) {
 	(self)[i], (self)[j] = (self)[j], (self)[i]
 }
 
-func NewCommandInput(x interface{}) (CommandInput, error) {
+func NewCommandInput(x interface{}, cwl_path string) (CommandInput, error) {
 	out := CommandInput{}
 	if base, ok := x.(map[interface{}]interface{}); ok {
 		out.Id = base["id"].(string)
@@ -130,11 +135,22 @@ func NewCommandInput(x interface{}) (CommandInput, error) {
 			}
 		}
 		out.Type = NewDataType(base["type"])
-		
+
 		if def, ok := base["default"]; ok {
 			out.Default = &def
+			//special case when default value is a file
+			if out.Type.TypeName == "File" {
+				if base, ok := def.(map[interface{}]interface{}); ok {
+					if s, ok := base["path"]; ok {
+						base["path"] = path.Join(cwl_path, s.(string))
+					}
+					if s, ok := base["location"]; ok {
+						base["location"] = path.Join(cwl_path, s.(string))
+					}
+				}
+			}
 		}
-		
+
 	} else {
 		return out, fmt.Errorf("Unable to parse CommandInput: %v", x)
 	}
@@ -155,7 +171,6 @@ func NewDataType(value interface{}) DataType {
 	}
 	return DataType{}
 }
-
 
 func NewArgument(x interface{}) (Argument, error) {
 	if base, ok := x.(string); ok {
@@ -180,4 +195,3 @@ func NewArgument(x interface{}) (Argument, error) {
 	}
 	return Argument{}, fmt.Errorf("Can't Parse Argument")
 }
-
