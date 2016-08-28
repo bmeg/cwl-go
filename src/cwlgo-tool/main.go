@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"os"
 	"cwl"
 	"cwl/engine"
 	"encoding/json"
@@ -9,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 )
 
@@ -40,7 +40,11 @@ func main() {
 		Quiet:           *quiet_flag,
 	}
 
-	cwl_doc := cwl.Parse(flag.Arg(0))
+	cwl_doc, err := cwl.Parse(flag.Arg(0))
+	if err != nil {
+		os.Stderr.WriteString(fmt.Sprintf("Unable to parse CWL document: %s\n", err))
+		return
+	}
 	inputs, _ := cwl.InputParse(flag.Arg(1))
 
 	runner := cwl_engine.NewLocalRunner(config)
@@ -63,6 +67,6 @@ func main() {
 	}
 	out := cwl_doc.GetResults(graphState)
 	o, _ := json.Marshal(out)
-	fmt.Printf(string(o))
+	fmt.Printf("%s\n", string(o))
 
 }

@@ -29,7 +29,7 @@ func (self *JSONDict) Write(o io.Writer) {
 	o.Write(jout)
 }
 
-func Parse(cwl_path string) CWLDoc {
+func Parse(cwl_path string) (CWLDoc, error) {
 	source, err := ioutil.ReadFile(cwl_path)
 	if err != nil {
 		panic(err)
@@ -41,10 +41,10 @@ func Parse(cwl_path string) CWLDoc {
 	if doc["class"].(string) == "CommandLineTool" {
 		return NewCommandLineTool(doc, base_path)
 	}
-	return nil
+	return nil, nil
 }
 
-func NewCommandLineTool(doc CWLDocData, cwl_path string) CWLDoc {
+func NewCommandLineTool(doc CWLDocData, cwl_path string) (CWLDoc, error) {
 	log.Printf("CommandLineTool: %v", doc)
 	out := CommandLineTool{}
 	out.Inputs = make(map[string]CommandInput)
@@ -54,6 +54,15 @@ func NewCommandLineTool(doc CWLDocData, cwl_path string) CWLDoc {
 		out.Id = doc["id"].(string)
 	} else {
 		out.Id = ""
+	}
+
+	if base, ok := doc["requirements"]; ok {
+		r, err := NewRequirements(base)
+		if err != nil {
+			return CommandLineTool{}, err
+		}
+		log.Printf("Requirements: %#v", r)
+		out.Requirements = r
 	}
 
 	if base, ok := doc["baseCommand"].([]string); ok {
@@ -74,18 +83,17 @@ func NewCommandLineTool(doc CWLDocData, cwl_path string) CWLDoc {
 	}
 
 	if base, ok := doc["inputs"]; ok {
-		if base_map, ok := base.(map[string]interface{}); ok {
+		if base_map, ok := base.(map[interface{}]interface{}); ok {
 			for k, v := range base_map {
-				n, err := NewCommandInput(v, cwl_path)
+				n, err := NewCommandInput(k.(string), v, cwl_path)
 				if err == nil {
-					n.Id = k
 					out.Inputs[n.Id] = n
 				}
 			}
 		} else if base_array, ok := base.([]interface{}); ok {
 			log.Printf("Input array: %d", len(base_array))
 			for _, x := range base_array {
-				n, err := NewCommandInput(x, cwl_path)
+				n, err := NewCommandInput("", x, cwl_path)
 				if err == nil {
 					out.Inputs[n.Id] = n
 				} else {
@@ -100,27 +108,17 @@ func NewCommandLineTool(doc CWLDocData, cwl_path string) CWLDoc {
 	}
 
 	log.Printf("Parse CommandLineTool: %v", out)
-	return out
+	return out, nil
 }
 
-type cmdArgArray []cmdArg
-
-func (self cmdArgArray) Len() int {
-	return len(self)
-}
-
-func (self cmdArgArray) Less(i, j int) bool {
-	return (self)[i].position < (self)[j].position
-}
-
-func (self cmdArgArray) Swap(i, j int) {
-	(self)[i], (self)[j] = (self)[j], (self)[i]
-}
-
-func NewCommandInput(x interface{}, cwl_path string) (CommandInput, error) {
+func NewCommandInput(id string, x interface{}, cwl_path string) (CommandInput, error) {
 	out := CommandInput{}
 	if base, ok := x.(map[interface{}]interface{}); ok {
-		out.Id = base["id"].(string)
+		if id == "" {
+			out.Id = base["id"].(string)
+		} else {
+			out.Id = id
+		}
 		if binding, ok := base["inputBinding"]; ok {
 			if pos, ok := binding.(map[interface{}]interface{})["position"]; ok {
 				out.Position = pos.(int)
@@ -134,8 +132,11 @@ func NewCommandInput(x interface{}, cwl_path string) (CommandInput, error) {
 				out.ItemSeparator = &itemSep
 			}
 		}
-		out.Type = NewDataType(base["type"])
-
+		t, err := NewDataType(base["type"])
+		if err != nil {
+			return out, fmt.Errorf("unable to load data type: %s", err)
+		}
+		out.Type = t
 		if def, ok := base["default"]; ok {
 			out.Default = &def
 			//special case when default value is a file
@@ -158,18 +159,30 @@ func NewCommandInput(x interface{}, cwl_path string) (CommandInput, error) {
 	return out, nil
 }
 
-func NewDataType(value interface{}) DataType {
+func NewDataType(value interface{}) (DataType, error) {
 	if base, ok := value.(string); ok {
-		return DataType{TypeName: base}
+		return DataType{TypeName: base}, nil
 	} else if base, ok := value.(map[interface{}]interface{}); ok {
 		out := DataType{TypeName: base["type"].(string)}
-		a := NewDataType(base["items"])
+		//in the case of an item array, there can be command line bindings for the elements
+		if bBase, bOk := base["inputBinding"]; bOk {
+			if binding, bOk := bBase.(map[interface{}]interface{}); bOk {
+				if prefix, pOk := binding["prefix"]; pOk {
+					p := prefix.(string)
+					out.Prefix = &(p)
+				}
+			}
+		}
+		a, err := NewDataType(base["items"])
+		if err != nil {
+			return out, fmt.Errorf("Unable to parse type: %s", err)
+		}
 		out.Items = &a
-		return out
+		return out, nil
 	} else {
-		panic(fmt.Sprintf("Unknown data type: %#v\n", value))
+		return DataType{}, fmt.Errorf("Unknown data type: %#v\n", value)
 	}
-	return DataType{}
+	return DataType{}, nil
 }
 
 func NewArgument(x interface{}) (Argument, error) {
@@ -194,4 +207,55 @@ func NewArgument(x interface{}) (Argument, error) {
 		return out, nil
 	}
 	return Argument{}, fmt.Errorf("Can't Parse Argument")
+}
+
+func NewRequirements(x interface{}) ([]Requirement, error) {
+	out := []Requirement{}
+	if base, ok := x.([]interface{}); ok {
+		for _, i := range base {
+			o, err := NewRequirement(i)
+			if err != nil {
+				return out, err
+			}
+			out = append(out, o)
+		}
+	} else {
+		return out, fmt.Errorf("Unable to parse requirements block")
+	}
+	return out, nil
+}
+
+func NewRequirement(x interface{}) (Requirement, error) {
+	if base, ok := x.(map[interface{}]interface{}); ok {
+		if id, ok := base["class"]; ok {
+			id_string := id.(string)
+			switch {
+			case id_string == "SchemaDefRequirement":
+				return NewSchemaDefRequirement(base)
+			default:
+				return nil, fmt.Errorf("Unknown requirement: %s", id_string)
+			}
+		} else {
+			return nil, fmt.Errorf("Undefined requirement")
+		}
+	}
+	return nil, fmt.Errorf("Undefined requirement")
+}
+
+func NewSchemaDefRequirement(x map[interface{}]interface{}) (SchemaDefRequirement, error) {
+	newTypes := []DataType{}
+	if base, ok := x["types"]; ok {
+		if fieldArray, ok := base.([]interface{}); ok {
+			for _, i := range fieldArray {
+				d, err := NewDataType(i)
+				if err != nil {
+					return SchemaDefRequirement{}, fmt.Errorf("Unknown DataType: %s", err)
+				}
+				newTypes = append(newTypes, d)
+			}
+		}
+	} else {
+		return SchemaDefRequirement{}, fmt.Errorf("No types column")
+	}
+	return SchemaDefRequirement{NewTypes: newTypes}, nil
 }

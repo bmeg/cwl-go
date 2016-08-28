@@ -54,6 +54,23 @@ func (self CommandLineTool) GenerateJob(step string, graphState GraphState) (Job
 	}
 }
 
+type cmdArgArray []cmdArg
+
+func (self cmdArgArray) Len() int {
+	return len(self)
+}
+
+func (self cmdArgArray) Less(i, j int) bool {
+	if (self)[i].position == (self)[j].position {
+		return (self)[i].id < (self)[j].id
+	}
+	return (self)[i].position < (self)[j].position
+}
+
+func (self cmdArgArray) Swap(i, j int) {
+	(self)[i], (self)[j] = (self)[j], (self)[i]
+}
+
 func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
 	log.Printf("CommandLineTool Evalute")
 	out := make([]string, 0)
@@ -71,6 +88,7 @@ func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]string, []JobFile, err
 		}
 		c := cmdArg{
 			position: x.Position,
+			id:       "",
 			value:    e,
 		}
 		args = append(args, c)
@@ -85,6 +103,7 @@ func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]string, []JobFile, err
 		}
 		c := cmdArg{
 			position: x.Position,
+			id:       x.Id,
 			value:    e,
 		}
 		args = append(args, c)
@@ -125,6 +144,9 @@ func (self *DataType) Evaluate(value interface{}) ([]string, []JobFile, error) {
 				e, files, err := self.Items.Evaluate(i)
 				if err != nil {
 					return []string{}, []JobFile{}, err
+				}
+				if self.Prefix != nil {
+					out = append(out, *self.Prefix)
 				}
 				out = append(out, e...)
 				oFiles = append(oFiles, files...)

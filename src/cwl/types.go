@@ -39,6 +39,7 @@ type CommandLineTool struct {
 
 type cmdArg struct {
 	position int
+	id       string
 	value    []string
 }
 
@@ -54,11 +55,16 @@ type CommandInput struct {
 type DataType struct {
 	TypeName string
 	Items    *DataType
+	Prefix   *string
 }
 
 type CommandOutput struct{}
 
-type Requirement struct{}
+type Requirement interface{}
+
+type SchemaDefRequirement struct {
+	NewTypes []DataType
+}
 
 type Argument struct {
 	Value         *string
