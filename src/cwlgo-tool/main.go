@@ -3,7 +3,6 @@ package main
 import (
 	"cwl"
 	"cwl/engine"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -24,7 +23,6 @@ func main() {
 		fmt.Printf("cwlgo-tool v0.0.1\n")
 		return
 	}
-	//fmt.Fprintf(os.Stderr, "cwlgo-tool v0.0.1\n")
 
 	if *quiet_flag {
 		log.SetOutput(ioutil.Discard)
@@ -59,14 +57,13 @@ func main() {
 			}
 			out, err := runner.RunCommand(job)
 			if err != nil {
-				log.Printf("%s", err)
+				log.Printf("Runtime Error: %s", err)
 				return
 			}
 			graphState = cwl_doc.UpdateStepResults(graphState, step, out)
 		}
 	}
 	out := cwl_doc.GetResults(graphState)
-	o, _ := json.Marshal(out)
-	fmt.Printf("%s\n", string(o))
+	fmt.Printf("%s\n", string(out.ToString()))
 
 }

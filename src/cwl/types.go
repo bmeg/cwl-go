@@ -7,8 +7,10 @@ type JSONDict map[interface{}]interface{}
 type GraphState map[string]interface{}
 
 type Job struct {
-	Cmd   []string
-	Files []JobFile
+	Cmd    []string
+	Files  []JobFile
+	Stdout string
+	Stderr string
 }
 
 type JobFile struct {
@@ -16,6 +18,7 @@ type JobFile struct {
 	Location string
 	Dir      bool
 	Output   bool
+	Glob     string
 }
 
 type CWLDoc interface {
@@ -35,6 +38,8 @@ type CommandLineTool struct {
 	BaseCommand  []string
 	Requirements []Requirement
 	Arguments    []Argument
+	Stdout       string
+	Stderr       string
 }
 
 type cmdArg struct {
@@ -58,7 +63,11 @@ type DataType struct {
 	Prefix   *string
 }
 
-type CommandOutput struct{}
+type CommandOutput struct {
+	Id   string
+	Type DataType
+	Glob string
+}
 
 type Requirement interface{}
 

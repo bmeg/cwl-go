@@ -110,6 +110,16 @@ func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]string, []JobFile, err
 		oFiles = append(oFiles, files...)
 	}
 
+	//Outputs
+	for _, x := range self.Outputs {
+		_, files, err := x.Evaluate(inputs)
+		if err != nil {
+			log.Printf("Output Error: %s", err)
+			return []string{}, []JobFile{}, err
+		}
+		oFiles = append(oFiles, files...)
+	}
+
 	sort.Stable(args)
 	for _, x := range args {
 		out = append(out, x.value...)
@@ -193,6 +203,19 @@ func (self *CommandInput) Evaluate(inputs JSONDict) ([]string, []JobFile, error)
 	}
 	return value_str, oFiles, nil
 
+}
+
+func (self *CommandOutput) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
+
+	if self.Glob != "" {
+		return []string{}, []JobFile{
+			JobFile{
+				Output: true,
+				Glob:   self.Glob,
+			},
+		}, nil
+	}
+	return []string{}, []JobFile{}, nil
 }
 
 func (self *Argument) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
