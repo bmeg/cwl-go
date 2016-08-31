@@ -24,13 +24,13 @@ func (self LocalRunner) LocationToPath(location string) string {
 }
 
 func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
-	log.Printf("Files: %#v", job.Files)
-	log.Printf("Inputs: %#v", job.Inputs)
+	log.Printf("Command Files: %#v", job.Files)
+	log.Printf("Command Inputs: %#v", job.Inputs)
 
 	inputs := MapInputs(job.Inputs, self)
 
 	workdir, _ := ioutil.TempDir(self.Config.TmpdirPrefix, "cwlwork_")
-	log.Printf("Command: %s", job.Cmd)
+	log.Printf("Command Args: %s", job.Cmd)
 
 	cmd_args := make([]string, len(job.Cmd))
 	for i := range job.Cmd {

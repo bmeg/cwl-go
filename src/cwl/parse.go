@@ -241,19 +241,19 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 		if base_map, ok := base.(map[interface{}]interface{}); ok {
 			for k, v := range base_map {
 				n, err := self.NewCommandOutput(k.(string), v)
-				if err == nil {
-					out.Outputs[n.Id] = n
+				if err != nil {
+					return out, fmt.Errorf("Output map parsing errors: %s %s %s %#v", out.Id, k, err, v)
 				}
+				out.Outputs[n.Id] = n
 			}
 		} else if base_array, ok := base.([]interface{}); ok {
 			log.Printf("Output array: %d", len(base_array))
 			for _, x := range base_array {
 				n, err := self.NewCommandOutput("", x)
-				if err == nil {
-					out.Outputs[n.Id] = n
-				} else {
-					log.Printf("Command line Output error: %s", err)
+				if err != nil {
+					return out, fmt.Errorf("Output array parsing errors: %s %s", out.Id, err)
 				}
+				out.Outputs[n.Id] = n
 			}
 		} else {
 			log.Printf("Can't Parse Outputs")
@@ -277,40 +277,30 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 }
 
 func (self *CWLParser) NewWorkflowInput(id string, x interface{}) (WorkflowInput, error) {
-	out := WorkflowInput{}
-	if base, ok := x.(map[interface{}]interface{}); ok {
-		if id == "" {
-			out.Id = base["id"].(string)
-		} else {
-			out.Id = id
-		}
-		t, err := self.NewDataType(base["type"])
-		if err != nil {
-			return out, fmt.Errorf("unable to load data type: %s", err)
-		}
-		out.Type = t
+	t, err := self.NewSchema(x)
+	if err != nil {
+		return WorkflowInput{}, fmt.Errorf("unable to load data type: %s", err)
 	}
+	if id != "" {
+		t.Id = id
+	}
+	out := WorkflowInput{Schema: t}
 	return out, nil
 }
 
 func (self *CWLParser) NewWorkflowOutput(id string, x interface{}) (WorkflowOutput, error) {
-	out := WorkflowOutput{}
+	t, err := self.NewSchema(x)
+	if err != nil {
+		return WorkflowOutput{}, fmt.Errorf("unable to load data type: %s", err)
+	}
+	if id != "" {
+		t.Id = id
+	}
+	out := WorkflowOutput{Schema: t}
 	if base, ok := x.(map[interface{}]interface{}); ok {
-		if id == "" {
-			out.Id = base["id"].(string)
-		} else {
-			out.Id = id
-		}
-		t, err := self.NewDataType(base["type"])
-		if err != nil {
-			return out, fmt.Errorf("unable to load data type: %s", err)
-		}
-		out.Type = t
-
 		if s, ok := base["outputSource"]; ok {
 			out.OutputSource = s.(string)
 		}
-
 	}
 	return out, nil
 }
@@ -359,12 +349,53 @@ func (self *CWLParser) NewStep(id string, x interface{}) (Step, error) {
 }
 
 func (self *CWLParser) NewCommandInput(id string, x interface{}) (CommandInput, error) {
-	out := CommandInput{}
+	t, err := self.NewSchema(x)
+	if err != nil {
+		return CommandInput{}, fmt.Errorf("unable to load data type: %s", err)
+	}
+	out := CommandInput{Schema: t}
+	if id != "" {
+		out.Id = id
+	}
+	return out, nil
+}
+
+func (self *CWLParser) NewCommandOutput(id string, x interface{}) (CommandOutput, error) {
+	log.Printf("CommandOutput parse")
+	t, err := self.NewSchema(x)
+	if err != nil {
+		return CommandOutput{}, fmt.Errorf("unable to load schema: %s", err)
+	}
+	out := CommandOutput{Schema: t}
+	if id != "" {
+		out.Id = id
+	}
+
 	if base, ok := x.(map[interface{}]interface{}); ok {
-		if id == "" {
-			out.Id = base["id"].(string)
+		if _, ok := base["outputBinding"]; ok {
+			if bindBase, ok := base["outputBinding"].(map[interface{}]interface{}); ok {
+				if _, ok := bindBase["glob"]; ok {
+					g := bindBase["glob"].(string)
+					out.Glob = g
+				}
+			} else {
+				log.Printf("Output Binding format weird")
+			}
 		} else {
-			out.Id = id
+			log.Printf("No output binding: %s", out.Id)
+		}
+	} else {
+		return out, fmt.Errorf("Unable to parse CommandOutput: %v", x)
+	}
+	return out, nil
+}
+
+func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
+
+	if base, ok := value.(map[interface{}]interface{}); ok {
+		out := Schema{TypeName: base["type"].(string)}
+		if id, ok := base["id"]; ok {
+			out.Id = id.(string)
 		}
 		if binding, ok := base["inputBinding"]; ok {
 			if pos, ok := binding.(map[interface{}]interface{})["position"]; ok {
@@ -378,80 +409,34 @@ func (self *CWLParser) NewCommandInput(id string, x interface{}) (CommandInput, 
 			if itemSep, ok := binding.(map[interface{}]interface{})["itemSeparator"].(string); ok {
 				out.ItemSeparator = &itemSep
 			}
-		}
-		t, err := self.NewDataType(base["type"])
-		if err != nil {
-			return out, fmt.Errorf("unable to load data type: %s", err)
-		}
-		out.Type = t
-		if def, ok := base["default"]; ok {
-			out.Default = &def
-			//special case when default value is a file
-			if out.Type.TypeName == "File" {
-				if base, ok := def.(map[interface{}]interface{}); ok {
-					if s, ok := base["path"]; ok {
-						base["path"] = path.Join(self.BasePath, s.(string))
-					}
-					if s, ok := base["location"]; ok {
-						base["location"] = path.Join(self.BasePath, s.(string))
+
+			if def, ok := base["default"]; ok {
+				out.Default = &def
+				//special case when default value is a file
+				if out.TypeName == "File" {
+					if base, ok := def.(map[interface{}]interface{}); ok {
+						if s, ok := base["path"]; ok {
+							base["path"] = path.Join(self.BasePath, s.(string))
+						}
+						if s, ok := base["location"]; ok {
+							base["location"] = path.Join(self.BasePath, s.(string))
+						}
 					}
 				}
 			}
 		}
-
-	} else {
-		return out, fmt.Errorf("Unable to parse CommandInput: %v", x)
-	}
-	log.Printf("CommandInput: %#v", out)
-	return out, nil
-}
-
-func (self *CWLParser) NewCommandOutput(id string, x interface{}) (CommandOutput, error) {
-	out := CommandOutput{}
-	if base, ok := x.(map[interface{}]interface{}); ok {
-		if id == "" {
-			out.Id = base["id"].(string)
-		} else {
-			out.Id = id
-		}
-		if _, ok := base["outputBinding"]; ok {
-			if bindBase, ok := base["outputBinding"].(map[interface{}]interface{}); ok {
-				if _, ok := bindBase["glob"]; ok {
-					g := bindBase["glob"].(string)
-					out.Glob = g
-				}
+		if _, ok := base["items"]; ok {
+			a, err := self.NewSchema(base["items"])
+			if err != nil {
+				return out, fmt.Errorf("Unable to parse type: %s", err)
 			}
+			out.Items = &a
 		}
-	} else {
-		return out, fmt.Errorf("Unable to parse CommandOutput: %v", x)
-	}
-	return out, nil
-}
-
-func (self *CWLParser) NewDataType(value interface{}) (DataType, error) {
-	if base, ok := value.(string); ok {
-		return DataType{TypeName: base}, nil
-	} else if base, ok := value.(map[interface{}]interface{}); ok {
-		out := DataType{TypeName: base["type"].(string)}
-		//in the case of an item array, there can be command line bindings for the elements
-		if bBase, bOk := base["inputBinding"]; bOk {
-			if binding, bOk := bBase.(map[interface{}]interface{}); bOk {
-				if prefix, pOk := binding["prefix"]; pOk {
-					p := prefix.(string)
-					out.Prefix = &(p)
-				}
-			}
-		}
-		a, err := self.NewDataType(base["items"])
-		if err != nil {
-			return out, fmt.Errorf("Unable to parse type: %s", err)
-		}
-		out.Items = &a
 		return out, nil
 	} else {
-		return DataType{}, fmt.Errorf("Unknown data type: %#v\n", value)
+		return Schema{}, fmt.Errorf("Unknown data type: %#v\n", value)
 	}
-	return DataType{}, nil
+	return Schema{}, nil
 }
 
 func (self *CWLParser) NewArgument(x interface{}) (Argument, error) {
@@ -516,11 +501,11 @@ func (self *CWLParser) NewRequirement(x interface{}) (Requirement, error) {
 }
 
 func (self *CWLParser) NewSchemaDefRequirement(x map[interface{}]interface{}) (SchemaDefRequirement, error) {
-	newTypes := []DataType{}
+	newTypes := []Schema{}
 	if base, ok := x["types"]; ok {
 		if fieldArray, ok := base.([]interface{}); ok {
 			for _, i := range fieldArray {
-				d, err := self.NewDataType(i)
+				d, err := self.NewSchema(i)
 				if err != nil {
 					return SchemaDefRequirement{}, fmt.Errorf("Unknown DataType: %s", err)
 				}

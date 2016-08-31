@@ -131,13 +131,17 @@ func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]string, []JobFile, err
 	return out, oFiles, nil
 }
 
-func (self *DataType) Evaluate(value interface{}) ([]string, []JobFile, error) {
+func (self *Schema) SchemaEvaluate(value interface{}) ([]string, []JobFile, error) {
+	out_args := []string{}
+	out_files := []JobFile{}
+
 	if self.TypeName == "File" {
 		if base, ok := value.(map[interface{}]interface{}); ok {
 			if class, ok := base["class"]; ok {
 				if class.(string) == "File" {
 					loc := base["location"].(string)
-					return []string{loc}, []JobFile{JobFile{Location: loc}}, nil
+					out_args = []string{loc}
+					out_files = []JobFile{JobFile{Location: loc}}
 				} else {
 					log.Printf("Unknown class %s", class)
 				}
@@ -148,26 +152,31 @@ func (self *DataType) Evaluate(value interface{}) ([]string, []JobFile, error) {
 			log.Printf("File input not formatted correctly: %#v", value)
 		}
 	} else if self.TypeName == "int" {
-		return []string{fmt.Sprintf("%d", value.(int))}, []JobFile{}, nil
+		out_args = []string{fmt.Sprintf("%d", value.(int))}
 	} else if self.TypeName == "array" {
-		out := []string{}
-		oFiles := []JobFile{}
 		if base, ok := value.([]interface{}); ok {
 			for _, i := range base {
-				e, files, err := self.Items.Evaluate(i)
+				e, files, err := self.Items.SchemaEvaluate(i)
 				if err != nil {
 					return []string{}, []JobFile{}, err
 				}
 				if self.Prefix != nil {
-					out = append(out, *self.Prefix)
+					out_args = append(out_args, *self.Prefix)
 				}
-				out = append(out, e...)
-				oFiles = append(oFiles, files...)
+				out_args = append(out_args, e...)
+				out_files = append(out_files, files...)
 			}
 		}
-		return out, oFiles, nil
+	} else {
+		return []string{}, []JobFile{}, fmt.Errorf("Unknown Type %s", self.TypeName)
 	}
-	return []string{}, []JobFile{}, fmt.Errorf("Unknown Type %s", self.TypeName)
+	if self.ItemSeparator != nil {
+		out_args = []string{strings.Join(out_args, *self.ItemSeparator)}
+	}
+	if self.Prefix != nil {
+		out_args = append([]string{*self.Prefix}, out_args...)
+	}
+	return out_args, out_files, nil
 }
 
 func (self *CommandInput) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
@@ -177,9 +186,9 @@ func (self *CommandInput) Evaluate(inputs JSONDict) ([]string, []JobFile, error)
 	if base, ok := inputs[self.Id]; ok {
 		var err error
 		files := []JobFile{}
-		value_str, files, err = self.Type.Evaluate(base)
+		value_str, files, err = self.SchemaEvaluate(base)
 		if err != nil {
-			log.Printf("DataType Evaluation Error: %s", err)
+			log.Printf("Schema Evaluation Error: %s", err)
 			return []string{}, []JobFile{}, err
 		}
 		oFiles = append(oFiles, files...)
@@ -187,9 +196,9 @@ func (self *CommandInput) Evaluate(inputs JSONDict) ([]string, []JobFile, error)
 		if self.Default != nil {
 			var err error
 			files := []JobFile{}
-			value_str, files, err = self.Type.Evaluate(*self.Default)
+			value_str, files, err = self.SchemaEvaluate(*self.Default)
 			if err != nil {
-				log.Printf("DataType Evaluation Error: %s", err)
+				log.Printf("Schema Evaluation Error: %s", err)
 				return []string{}, []JobFile{}, err
 			}
 			oFiles = append(oFiles, files...)
@@ -197,22 +206,14 @@ func (self *CommandInput) Evaluate(inputs JSONDict) ([]string, []JobFile, error)
 			return []string{}, []JobFile{}, fmt.Errorf("Input %s not found", self.Id)
 		}
 	}
-
-	if self.ItemSeparator != nil {
-		value_str = []string{strings.Join(value_str, *self.ItemSeparator)}
-	}
-	if self.Prefix != nil {
-		value_str = append([]string{*self.Prefix}, value_str...)
-	}
 	return value_str, oFiles, nil
-
 }
 
 func (self *CommandOutput) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
-
 	if self.Glob != "" {
 		return []string{}, []JobFile{
 			JobFile{
+				Id:     self.Id,
 				Output: true,
 				Glob:   self.Glob,
 			},
@@ -222,7 +223,6 @@ func (self *CommandOutput) Evaluate(inputs JSONDict) ([]string, []JobFile, error
 }
 
 func (self *Argument) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
-	//fmt.Printf("Arguments %#v\n", self)
 	if self.Value != nil {
 		return []string{*self.Value}, []JobFile{}, nil
 	} else if self.ValueFrom != nil {

@@ -66,13 +66,11 @@ type cmdArg struct {
 }
 
 type WorkflowInput struct {
-	Id   string
-	Type DataType
+	Schema
 }
 
 type WorkflowOutput struct {
-	Id           string
-	Type         DataType
+	Schema
 	OutputSource string
 }
 
@@ -83,31 +81,29 @@ type Step struct {
 	Doc CWLDoc
 }
 
-type CommandInput struct {
+type Schema struct {
 	Id            string
-	Position      int
+	TypeName      string
+	Items         *Schema
 	Prefix        *string
+	Position      int
 	ItemSeparator *string
-	Type          DataType
 	Default       *interface{}
 }
 
-type DataType struct {
-	TypeName string
-	Items    *DataType
-	Prefix   *string
+type CommandInput struct {
+	Schema
 }
 
 type CommandOutput struct {
-	Id   string
-	Type DataType
+	Schema
 	Glob string
 }
 
 type Requirement interface{}
 
 type SchemaDefRequirement struct {
-	NewTypes []DataType
+	NewTypes []Schema
 }
 
 type InlineJavascriptRequirement struct {
