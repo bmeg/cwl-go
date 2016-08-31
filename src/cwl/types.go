@@ -4,16 +4,25 @@ type CWLDocData map[string]interface{}
 
 type JSONDict map[interface{}]interface{}
 
-type GraphState map[string]interface{}
+type GraphState map[string]JobState
+type JobState map[string]interface{}
+
+const INPUT_FIELD = "#"
+const RESULTS_FIELD = "results"
+const RUNTIME_FIELD = "runtime"
+const ERROR_FIELD = "error"
 
 type Job struct {
 	Cmd    []string
 	Files  []JobFile
 	Stdout string
 	Stderr string
+	Stdin  string
+	Inputs JSONDict
 }
 
 type JobFile struct {
+	Id       string
 	Path     string
 	Location string
 	Dir      bool
@@ -31,6 +40,13 @@ type CWLDoc interface {
 	GenerateJob(step string, graphState GraphState) (Job, error)
 }
 
+type Workflow struct {
+	Id      string
+	Inputs  map[string]WorkflowInput
+	Outputs map[string]WorkflowOutput
+	Steps   map[string]Step
+}
+
 type CommandLineTool struct {
 	Id           string
 	Inputs       map[string]CommandInput
@@ -40,12 +56,31 @@ type CommandLineTool struct {
 	Arguments    []Argument
 	Stdout       string
 	Stderr       string
+	Stdin        string
 }
 
 type cmdArg struct {
 	position int
 	id       string
 	value    []string
+}
+
+type WorkflowInput struct {
+	Id   string
+	Type DataType
+}
+
+type WorkflowOutput struct {
+	Id           string
+	Type         DataType
+	OutputSource string
+}
+
+type Step struct {
+	Id  string
+	In  map[string]string
+	Out map[string]string
+	Doc CWLDoc
 }
 
 type CommandInput struct {
@@ -73,6 +108,12 @@ type Requirement interface{}
 
 type SchemaDefRequirement struct {
 	NewTypes []DataType
+}
+
+type InlineJavascriptRequirement struct {
+}
+
+type InitialWorkDirRequirement struct {
 }
 
 type Argument struct {

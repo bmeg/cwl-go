@@ -19,18 +19,43 @@ type LocalRunner struct {
 	Config Config
 }
 
+func (self LocalRunner) LocationToPath(location string) string {
+	return location
+}
+
 func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 	log.Printf("Files: %#v", job.Files)
+	log.Printf("Inputs: %#v", job.Inputs)
+
+	inputs := MapInputs(job.Inputs, self)
+
 	workdir, _ := ioutil.TempDir(self.Config.TmpdirPrefix, "cwlwork_")
-	cmd := exec.Command(job.Cmd[0], job.Cmd[1:]...)
+	log.Printf("Command: %s", job.Cmd)
+
+	cmd_args := make([]string, len(job.Cmd))
+	for i := range job.Cmd {
+		cmd_args[i], _ = cwl.ExpressionEvaluate(job.Cmd[i], inputs)
+	}
+
+	cmd := exec.Command(cmd_args[0], cmd_args[1:]...)
 
 	if job.Stdout != "" {
-		cmd.Stdout, _ = os.Create(filepath.Join(workdir, job.Stdout))
+		stdout, _ := cwl.ExpressionEvaluate(job.Stdout, inputs)
+		cmd.Stdout, _ = os.Create(filepath.Join(workdir, stdout))
 	}
 	if job.Stderr != "" {
-		cmd.Stderr, _ = os.Create(filepath.Join(workdir, job.Stderr))
+		stderr, _ := cwl.ExpressionEvaluate(job.Stderr, inputs)
+		cmd.Stderr, _ = os.Create(filepath.Join(workdir, stderr))
 	}
-
+	if job.Stdin != "" {
+		stdin, _ := cwl.ExpressionEvaluate(job.Stdin, inputs)
+		log.Printf("STDIN: %s", stdin)
+		var err error
+		cmd.Stdin, err = os.Open(stdin)
+		if err != nil {
+			return cwl.JSONDict{}, err
+		}
+	}
 	cmd.Dir = workdir
 	log.Printf("Workdir: %s", workdir)
 	err := cmd.Run()
@@ -41,11 +66,11 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 		out := map[interface{}]interface{}{}
 		//err := json.Unmarshal(data, &out)
 		err := yaml.Unmarshal(data, &out)
-
 		log.Printf("Returned: %s = %s %s", data, out, err)
 		return out, err
 	}
 
+	out := cwl.JSONDict{}
 	for _, o := range job.Files {
 		if o.Output {
 			if o.Glob != "" {
@@ -54,9 +79,10 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 				for _, p := range g {
 					log.Printf("Found %s", p)
 				}
+				f := cwl.JSONDict{"path": g[0]}
+				out[o.Id] = f
 			}
 		}
 	}
-
-	return cwl.JSONDict{}, err
+	return out, err
 }

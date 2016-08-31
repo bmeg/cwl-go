@@ -49,6 +49,7 @@ func main() {
 
 	graphState := cwl_doc.NewGraphState(inputs)
 	for !cwl_doc.Done(graphState) {
+		readyCount := 0
 		for _, step := range cwl_doc.ReadySteps(graphState) {
 			job, err := cwl_doc.GenerateJob(step, graphState)
 			if err != nil {
@@ -61,6 +62,11 @@ func main() {
 				return
 			}
 			graphState = cwl_doc.UpdateStepResults(graphState, step, out)
+			readyCount += 1
+		}
+		if readyCount == 0 {
+			log.Printf("No jobs found")
+			return
 		}
 	}
 	out := cwl_doc.GetResults(graphState)

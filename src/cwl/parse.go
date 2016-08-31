@@ -76,6 +76,9 @@ func Parse(cwl_path string) (CWLDoc, error) {
 	x, _ := filepath.Abs(cwl_path)
 	base_path := filepath.Dir(x)
 	parser := CWLParser{BasePath: base_path}
+	if doc["class"].(string) == "Workflow" {
+		return parser.NewWorkflow(doc)
+	}
 	if doc["class"].(string) == "CommandLineTool" {
 		return parser.NewCommandLineTool(doc)
 	}
@@ -84,6 +87,82 @@ func Parse(cwl_path string) (CWLDoc, error) {
 
 type CWLParser struct {
 	BasePath string
+}
+
+func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
+	log.Printf("Workflow: %v", doc)
+	out := Workflow{}
+	out.Inputs = make(map[string]WorkflowInput)
+	out.Outputs = make(map[string]WorkflowOutput)
+
+	out.Steps = make(map[string]Step)
+
+	if base, ok := doc["inputs"]; ok {
+		if base_map, ok := base.(map[interface{}]interface{}); ok {
+			for k, v := range base_map {
+				n, err := self.NewWorkflowInput(k.(string), v)
+				if err == nil {
+					out.Inputs[n.Id] = n
+				} else {
+					log.Printf("Workflow Input error: %s", err)
+				}
+			}
+		} else if base_array, ok := base.([]interface{}); ok {
+			for _, x := range base_array {
+				n, err := self.NewWorkflowInput("", x)
+				if err == nil {
+					out.Inputs[n.Id] = n
+				} else {
+					log.Printf("Workflow Input error: %s", err)
+				}
+			}
+		}
+	}
+
+	if base, ok := doc["outputs"]; ok {
+		if base_map, ok := base.(map[interface{}]interface{}); ok {
+			for k, v := range base_map {
+				n, err := self.NewWorkflowOutput(k.(string), v)
+				if err == nil {
+					out.Outputs[n.Id] = n
+				} else {
+					log.Printf("Workflow Output error: %s", err)
+				}
+			}
+		} else if base_array, ok := base.([]interface{}); ok {
+			for _, x := range base_array {
+				n, err := self.NewWorkflowOutput("", x)
+				if err == nil {
+					out.Outputs[n.Id] = n
+				} else {
+					log.Printf("Workflow Output error: %s", err)
+				}
+			}
+		}
+	}
+
+	if base, ok := doc["steps"]; ok {
+		if base_map, ok := base.(map[interface{}]interface{}); ok {
+			for k, v := range base_map {
+				n, err := self.NewStep(k.(string), v)
+				if err == nil {
+					out.Steps[n.Id] = n
+				} else {
+					log.Printf("Workflow Step error: %s", err)
+				}
+			}
+		} else if base_array, ok := base.([]interface{}); ok {
+			for _, x := range base_array {
+				n, err := self.NewStep("", x)
+				if err == nil {
+					out.Steps[n.Id] = n
+				} else {
+					log.Printf("Workflow Step error: %s", err)
+				}
+			}
+		}
+	}
+	return out, nil
 }
 
 func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
@@ -109,8 +188,12 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 	}
 
 	/* BaseCommand */
-	if base, ok := doc["baseCommand"].([]string); ok {
-		out.BaseCommand = base
+	if base, ok := doc["baseCommand"].([]interface{}); ok {
+		o := make([]string, len(base))
+		for i, v := range base {
+			o[i] = v.(string)
+		}
+		out.BaseCommand = o
 	} else {
 		if base, ok := doc["baseCommand"].(string); ok {
 			out.BaseCommand = []string{base}
@@ -182,13 +265,97 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 	if base, ok := doc["stderr"]; ok {
 		out.Stderr = base.(string)
 	}
-
 	if base, ok := doc["stdout"]; ok {
 		out.Stdout = base.(string)
+	}
+	if base, ok := doc["stdin"]; ok {
+		out.Stdin = base.(string)
 	}
 
 	log.Printf("Parse CommandLineTool: %v", out)
 	return out, nil
+}
+
+func (self *CWLParser) NewWorkflowInput(id string, x interface{}) (WorkflowInput, error) {
+	out := WorkflowInput{}
+	if base, ok := x.(map[interface{}]interface{}); ok {
+		if id == "" {
+			out.Id = base["id"].(string)
+		} else {
+			out.Id = id
+		}
+		t, err := self.NewDataType(base["type"])
+		if err != nil {
+			return out, fmt.Errorf("unable to load data type: %s", err)
+		}
+		out.Type = t
+	}
+	return out, nil
+}
+
+func (self *CWLParser) NewWorkflowOutput(id string, x interface{}) (WorkflowOutput, error) {
+	out := WorkflowOutput{}
+	if base, ok := x.(map[interface{}]interface{}); ok {
+		if id == "" {
+			out.Id = base["id"].(string)
+		} else {
+			out.Id = id
+		}
+		t, err := self.NewDataType(base["type"])
+		if err != nil {
+			return out, fmt.Errorf("unable to load data type: %s", err)
+		}
+		out.Type = t
+
+		if s, ok := base["outputSource"]; ok {
+			out.OutputSource = s.(string)
+		}
+
+	}
+	return out, nil
+}
+
+func (self *CWLParser) NewStep(id string, x interface{}) (Step, error) {
+	sout := Step{}
+	sout.In = map[string]string{}
+	sout.Out = map[string]string{}
+
+	if base, ok := x.(map[interface{}]interface{}); ok {
+		if id == "" {
+			sout.Id = base["id"].(string)
+		} else {
+			sout.Id = id
+		}
+
+		if bIn, ok := base["in"]; ok {
+			if in, ok := bIn.(map[interface{}]interface{}); ok {
+				for k, v := range in {
+					sout.In[k.(string)] = v.(string)
+				}
+			}
+		}
+
+		if bOut, ok := base["out"]; ok {
+			if out, ok := bOut.(map[interface{}]interface{}); ok {
+				for k, v := range out {
+					sout.Out[k.(string)] = v.(string)
+				}
+			}
+		}
+
+		if bRun, ok := base["run"]; ok {
+			r := bRun.(string)
+			script := filepath.Join(self.BasePath, r)
+			log.Printf("RunScript: %s", script)
+			cDoc, err := Parse(script)
+			if err != nil {
+				return sout, fmt.Errorf("Unable to parse script %s", script)
+			}
+			sout.Doc = cDoc
+		}
+
+	}
+	return sout, nil
 }
 
 func (self *CWLParser) NewCommandInput(id string, x interface{}) (CommandInput, error) {
@@ -334,6 +501,10 @@ func (self *CWLParser) NewRequirement(x interface{}) (Requirement, error) {
 			switch {
 			case id_string == "SchemaDefRequirement":
 				return self.NewSchemaDefRequirement(base)
+			case id_string == "InlineJavascriptRequirement":
+				return self.NewInlineJavascriptRequirement(base)
+			case id_string == "InitialWorkDirRequirement":
+				return self.NewInitialWorkDirRequirement(base)
 			default:
 				return nil, fmt.Errorf("Unknown requirement: %s", id_string)
 			}
@@ -360,4 +531,12 @@ func (self *CWLParser) NewSchemaDefRequirement(x map[interface{}]interface{}) (S
 		return SchemaDefRequirement{}, fmt.Errorf("No types column")
 	}
 	return SchemaDefRequirement{NewTypes: newTypes}, nil
+}
+
+func (self *CWLParser) NewInlineJavascriptRequirement(x map[interface{}]interface{}) (InlineJavascriptRequirement, error) {
+	return InlineJavascriptRequirement{}, nil
+}
+
+func (self *CWLParser) NewInitialWorkDirRequirement(x map[interface{}]interface{}) (InitialWorkDirRequirement, error) {
+	return InitialWorkDirRequirement{}, nil
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func (self CommandLineTool) NewGraphState(inputs JSONDict) GraphState {
-	return GraphState{"#": inputs}
+	return GraphState{INPUT_FIELD: JobState{RESULTS_FIELD: inputs}}
 }
 
 func (self CommandLineTool) GetIDs() []string {
@@ -24,7 +24,10 @@ func (self CommandLineTool) Done(state GraphState) bool {
 
 func (self CommandLineTool) UpdateStepResults(state GraphState, stepId string, results JSONDict) GraphState {
 	out := GraphState{}
-	out[stepId] = results
+	for k, v := range state {
+		out[k] = v
+	}
+	out[stepId] = JobState{RESULTS_FIELD: results}
 	return out
 }
 
@@ -38,19 +41,19 @@ func (self CommandLineTool) ReadySteps(state GraphState) []string {
 }
 
 func (self CommandLineTool) GetResults(state GraphState) JSONDict {
-	return state[self.Id].(JSONDict)
+	return state[self.Id][RESULTS_FIELD].(JSONDict)
 }
 
 func (self CommandLineTool) GenerateJob(step string, graphState GraphState) (Job, error) {
-	if i, ok := graphState["#"]; !ok {
+	if i, ok := graphState[INPUT_FIELD]; !ok {
 		return Job{}, fmt.Errorf("%s Inputs not ready", step)
 	} else {
-		cmd, files, err := self.Evaluate(i.(JSONDict))
+		cmd, files, err := self.Evaluate(i[RESULTS_FIELD].(JSONDict))
 		if err != nil {
 			log.Printf("Job Eval Error: %s", err)
 			return Job{}, err
 		}
-		return Job{Cmd: cmd, Files: files}, nil
+		return Job{Cmd: cmd, Files: files, Stderr: self.Stderr, Stdout: self.Stdout, Stdin: self.Stdin, Inputs: i[RESULTS_FIELD].(JSONDict)}, nil
 	}
 }
 
@@ -223,7 +226,8 @@ func (self *Argument) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
 	if self.Value != nil {
 		return []string{*self.Value}, []JobFile{}, nil
 	} else if self.ValueFrom != nil {
-		//fmt.Println("Arguments Evaluate")
+		//BUG: This is wrong. Need to evaluate expressions right before runtime (ie after paths are filed out)
+		//But first need some structure to keep arrays togeather so they can be joined by ItemSeparator...
 		exp, err := ExpressionEvaluate(*self.ValueFrom, inputs)
 		if err != nil {
 			log.Printf("Expression Error: %s", err)
