@@ -251,7 +251,7 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 			for _, x := range base_array {
 				n, err := self.NewCommandOutput("", x)
 				if err != nil {
-					return out, fmt.Errorf("Output array parsing errors: %s %s", out.Id, err)
+					return out, fmt.Errorf("Output array parsing errors: %s %s %#v", n.Id, err, x)
 				}
 				out.Outputs[n.Id] = n
 			}
@@ -393,7 +393,32 @@ func (self *CWLParser) NewCommandOutput(id string, x interface{}) (CommandOutput
 func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
 
 	if base, ok := value.(map[interface{}]interface{}); ok {
-		out := Schema{TypeName: base["type"].(string)}
+		out := Schema{}
+		if tname, ok := base["type"].(string); ok {
+			out = Schema{TypeName: tname}
+		} else if tstruct, ok := base["type"].(map[interface{}]interface{}); ok {
+			o, err := self.NewSchema(tstruct)
+			if err != nil {
+				log.Printf("Unable to parse type schema: %s", tstruct)
+			}
+			out.Types = []Schema{o}
+			out.TypeName = "array_holder"
+		} else if tarray, ok := base["type"].([]interface{}); ok {
+			for _, i := range tarray {
+				if tname, ok := i.(string); ok {
+					out.Types = append(out.Types, Schema{TypeName: tname})
+				} else {
+					a, err := self.NewSchema(i)
+					if err != nil {
+						return out, fmt.Errorf("Unable to parse type element: %s", err)
+					}
+					out.Types = append(out.Types, a)
+				}
+			}
+		} else {
+			return out, fmt.Errorf("Can't parse type: %#v", base["type"])
+		}
+
 		if id, ok := base["id"]; ok {
 			out.Id = id.(string)
 		}
@@ -404,10 +429,10 @@ func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
 				out.Position = 100000
 			}
 			if prefix, ok := binding.(map[interface{}]interface{})["prefix"].(string); ok {
-				out.Prefix = &prefix
+				out.Prefix = prefix
 			}
 			if itemSep, ok := binding.(map[interface{}]interface{})["itemSeparator"].(string); ok {
-				out.ItemSeparator = &itemSep
+				out.ItemSeparator = itemSep
 			}
 
 			if def, ok := base["default"]; ok {
@@ -425,16 +450,19 @@ func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
 				}
 			}
 		}
+
 		if _, ok := base["items"]; ok {
-			a, err := self.NewSchema(base["items"])
-			if err != nil {
-				return out, fmt.Errorf("Unable to parse type: %s", err)
+			if tname, ok := base["items"].(string); ok {
+				a := Schema{TypeName: tname}
+				out.Items = &a
+			} else {
+				log.Printf("Can't parse items")
 			}
-			out.Items = &a
 		}
+		log.Printf("NewSchema: %#v", out)
 		return out, nil
 	} else {
-		return Schema{}, fmt.Errorf("Unknown data type: %#v\n", value)
+		return Schema{}, fmt.Errorf("Unknown data type: %#v", value)
 	}
 	return Schema{}, nil
 }

@@ -85,9 +85,10 @@ type Schema struct {
 	Id            string
 	TypeName      string
 	Items         *Schema
-	Prefix        *string
+	Types         []Schema
+	Prefix        string
 	Position      int
-	ItemSeparator *string
+	ItemSeparator string
 	Default       *interface{}
 }
 

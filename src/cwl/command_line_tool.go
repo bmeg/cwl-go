@@ -131,11 +131,33 @@ func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]string, []JobFile, err
 	return out, oFiles, nil
 }
 
+func (self *Schema) IsOptional() bool {
+	for _, a := range self.Types {
+		if a.TypeName == "null" {
+			return true
+		}
+	}
+	return false
+}
+
 func (self *Schema) SchemaEvaluate(value interface{}) ([]string, []JobFile, error) {
 	out_args := []string{}
 	out_files := []JobFile{}
 
-	if self.TypeName == "File" {
+	typeName := self.TypeName
+
+	if typeName != "array_holder" {
+		for _, a := range self.Types {
+			if a.TypeName == "null" && value == nil {
+				typeName = "null"
+			} else {
+				//BUG: this is assuming a binary choice null vs something...
+				typeName = a.TypeName
+			}
+		}
+	}
+
+	if typeName == "File" {
 		if base, ok := value.(map[interface{}]interface{}); ok {
 			if class, ok := base["class"]; ok {
 				if class.(string) == "File" {
@@ -151,30 +173,42 @@ func (self *Schema) SchemaEvaluate(value interface{}) ([]string, []JobFile, erro
 		} else {
 			log.Printf("File input not formatted correctly: %#v", value)
 		}
-	} else if self.TypeName == "int" {
+	} else if typeName == "int" {
 		out_args = []string{fmt.Sprintf("%d", value.(int))}
-	} else if self.TypeName == "array" {
+	} else if typeName == "boolean" {
+		if value.(bool) {
+			out_args = []string{self.Prefix}
+		}
+	} else if typeName == "array_holder" {
+		o, f, err := self.Types[0].SchemaEvaluate(value)
+		if err != nil {
+			return []string{}, []JobFile{}, fmt.Errorf("Bad array '%s' (%#v)", typeName, *self)
+		}
+		out_args = o
+		out_files = f
+	} else if typeName == "array" {
 		if base, ok := value.([]interface{}); ok {
+			log.Printf("ArrayItem Schema: %#v", self)
 			for _, i := range base {
 				e, files, err := self.Items.SchemaEvaluate(i)
 				if err != nil {
 					return []string{}, []JobFile{}, err
 				}
-				if self.Prefix != nil {
-					out_args = append(out_args, *self.Prefix)
+				if self.Prefix != "" {
+					out_args = append(out_args, self.Prefix)
 				}
 				out_args = append(out_args, e...)
 				out_files = append(out_files, files...)
 			}
 		}
 	} else {
-		return []string{}, []JobFile{}, fmt.Errorf("Unknown Type %s", self.TypeName)
+		return []string{}, []JobFile{}, fmt.Errorf("Unknown Type '%s' (%#v)", typeName, *self)
 	}
-	if self.ItemSeparator != nil {
-		out_args = []string{strings.Join(out_args, *self.ItemSeparator)}
+	if self.ItemSeparator != "" {
+		out_args = []string{strings.Join(out_args, self.ItemSeparator)}
 	}
-	if self.Prefix != nil {
-		out_args = append([]string{*self.Prefix}, out_args...)
+	if self.Prefix != "" && typeName != "array" && typeName != "boolean" {
+		out_args = append([]string{self.Prefix}, out_args...)
 	}
 	return out_args, out_files, nil
 }
@@ -202,6 +236,8 @@ func (self *CommandInput) Evaluate(inputs JSONDict) ([]string, []JobFile, error)
 				return []string{}, []JobFile{}, err
 			}
 			oFiles = append(oFiles, files...)
+		} else if self.IsOptional() {
+			return []string{}, []JobFile{}, nil
 		} else {
 			return []string{}, []JobFile{}, fmt.Errorf("Input %s not found", self.Id)
 		}
@@ -210,16 +246,13 @@ func (self *CommandInput) Evaluate(inputs JSONDict) ([]string, []JobFile, error)
 }
 
 func (self *CommandOutput) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
-	if self.Glob != "" {
-		return []string{}, []JobFile{
-			JobFile{
-				Id:     self.Id,
-				Output: true,
-				Glob:   self.Glob,
-			},
-		}, nil
-	}
-	return []string{}, []JobFile{}, nil
+	return []string{}, []JobFile{
+		JobFile{
+			Id:     self.Id,
+			Output: true,
+			Glob:   self.Glob,
+		},
+	}, nil
 }
 
 func (self *Argument) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
