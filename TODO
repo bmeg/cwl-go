@@ -1,0 +1,83 @@
+
+================================
+cwlgo-tool v1.0/cat3-tool-shortcut.cwl v1.0/cat-job.json
+cwlgo-tool v1.0/cat3-tool-mediumcut.cwl v1.0/cat-job.json
+
+- Stdout Schema shortcut
+
+================================
+cwlgo-tool v1.0/egrep-stderr.cwl
+cwlgo-tool v1.0/egrep-stderr-shortcut.cwl
+cwlgo-tool v1.0/egrep-stderr-mediumcut.cwl
+
+- Support Empty input command
+
+================================
+cwlgo-tool v1.0/null-expression1-tool.cwl v1.0/empty.json
+cwlgo-tool v1.0/null-expression1-tool.cwl v1.0/null-expression1-job.json
+cwlgo-tool v1.0/null-expression1-tool.cwl v1.0/null-expression2-job.json
+cwlgo-tool v1.0/null-expression2-tool.cwl v1.0/null-expression2-job.json
+cwlgo-tool v1.0/parseInt-tool.cwl v1.0/parseInt-job.json
+cwlgo-tool v1.0/count-lines2-wf.cwl v1.0/wc-job.json
+
+- Support ExpressionTool class
+
+================================
+cwlgo-tool v1.0/wc2-tool.cwl v1.0/wc-job.json
+cwlgo-tool v1.0/count-lines1-wf.cwl v1.0/wc-job.json
+
+- Support output evaluation
+
+================================
+cwlgo-tool v1.0/cat3-tool.cwl v1.0/file-literal.yml
+
+- Add code to file mapper to deal with literal file objects
+- Move Command line evaluation to after file mapping
+
+================================
+cwlgo-tool v1.0/template-tool.cwl v1.0/cat-job.json
+
+- Finish Implementing InitialWorkDirRequirement
+- Add code import to Javascript engine
+
+================================
+cwlgo-tool v1.0/dir3.cwl v1.0/dir3-job.yml
+
+- Implement Directory support
+
+================================
+cwlgo-tool v1.0/test-cwl-out.cwl v1.0/empty.json
+cwlgo-tool v1.0/dir4.cwl v1.0/dir4-job.yml
+cwlgo-tool v1.0/dir5.cwl v1.0/dir-job.yml
+
+- Implement code to deal with ShellCommandRequirement
+
+================================
+cwlgo-tool v1.0/step-valuefrom2-wf.cwl v1.0/step-valuefrom-job.json
+
+- Workflow Step inputs can be arrays of other steps
+
+===============================
+cwlgo-tool v1.0/params2.cwl v1.0/empty.json
+cwlgo-tool v1.0/params.cwl v1.0/empty.json
+
+- Enable file input import during parsing
+
+===============================
+cwlgo-tool v1.0/schemadef-wf.cwl v1.0/schemadef-job.json
+cwlgo-tool  v1.0/schemadef-tool.cwl v1.0/schemadef-job.json
+
+- Finish Implementing SchemaDefRequirement
+- Enable file input import during parsing
+
+===============================
+cwlgo-tool v1.0/tmap-tool.cwl v1.0/tmap-job.json
+
+- Finish Implementing SchemaDefRequirement
+
+===============================
+cwlgo-tool v1.0/count-lines6-wf.cwl v1.0/count-lines6-job.json
+
+- Support ScatterFeatureRequirement
+- Support MultipleInputFeatureRequirement
+

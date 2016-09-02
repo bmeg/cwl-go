@@ -83,6 +83,7 @@ type Step struct {
 
 type Schema struct {
 	Id            string
+	Name          string
 	TypeName      string
 	Items         *Schema
 	Types         []Schema

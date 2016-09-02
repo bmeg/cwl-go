@@ -182,7 +182,7 @@ func (self *Schema) SchemaEvaluate(value interface{}) ([]string, []JobFile, erro
 	} else if typeName == "array_holder" {
 		o, f, err := self.Types[0].SchemaEvaluate(value)
 		if err != nil {
-			return []string{}, []JobFile{}, fmt.Errorf("Bad array '%s' (%#v)", typeName, *self)
+			return []string{}, []JobFile{}, fmt.Errorf("Bad array '%s' (%#v): %s", typeName, *self, err)
 		}
 		out_args = o
 		out_files = f

@@ -75,7 +75,7 @@ func Parse(cwl_path string) (CWLDoc, error) {
 	err = yaml.Unmarshal(source, &doc)
 	x, _ := filepath.Abs(cwl_path)
 	base_path := filepath.Dir(x)
-	parser := CWLParser{BasePath: base_path}
+	parser := CWLParser{BasePath: base_path, Schemas: make(map[string]Schema)}
 	if doc["class"].(string) == "Workflow" {
 		return parser.NewWorkflow(doc)
 	}
@@ -87,6 +87,11 @@ func Parse(cwl_path string) (CWLDoc, error) {
 
 type CWLParser struct {
 	BasePath string
+	Schemas  map[string]Schema
+}
+
+func (self *CWLParser) AddSchema(schema Schema) {
+	self.Schemas[schema.Name] = schema
 }
 
 func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
@@ -206,6 +211,8 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 			n, err := self.NewArgument(x)
 			if err == nil {
 				out.Arguments = append(out.Arguments, n)
+			} else {
+				return out, fmt.Errorf("Error Parsing Arguments: %s", err)
 			}
 		}
 	}
@@ -226,7 +233,7 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Inputs[n.Id] = n
 				} else {
-					log.Printf("Command line Input error: %s", err)
+					return out, fmt.Errorf("Command line Input error: %s", err)
 				}
 			}
 		} else {
@@ -390,30 +397,54 @@ func (self *CWLParser) NewCommandOutput(id string, x interface{}) (CommandOutput
 	return out, nil
 }
 
+var SCHEMA_TYPES = map[string]bool{
+	"boolean": true,
+	"int":     true,
+	"array":   true,
+	"record":  true,
+	"File":    true,
+	"null":    true,
+	"string":  true,
+}
+
 func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
+
+	if base, ok := value.(string); ok {
+		if _, found := SCHEMA_TYPES[base]; !found {
+			log.Printf("Schema not found: %s", base)
+			if _, ok := self.Schemas[base[1:]]; ok {
+				log.Printf("Schema Found")
+			} else {
+				log.Printf("Not found in %#v", self.Schemas)
+			}
+			return Schema{}, fmt.Errorf("Schema not found: %s", base)
+		} else {
+			return Schema{TypeName: base}, nil
+		}
+	}
 
 	if base, ok := value.(map[interface{}]interface{}); ok {
 		out := Schema{}
 		if tname, ok := base["type"].(string); ok {
-			out = Schema{TypeName: tname}
+			o, err := self.NewSchema(tname)
+			if err != nil {
+				return out, err
+			}
+			out = o
 		} else if tstruct, ok := base["type"].(map[interface{}]interface{}); ok {
 			o, err := self.NewSchema(tstruct)
 			if err != nil {
-				log.Printf("Unable to parse type schema: %s", tstruct)
+				return out, fmt.Errorf("Unable to parse type schema: %s: %s", tstruct, err)
 			}
 			out.Types = []Schema{o}
 			out.TypeName = "array_holder"
 		} else if tarray, ok := base["type"].([]interface{}); ok {
 			for _, i := range tarray {
-				if tname, ok := i.(string); ok {
-					out.Types = append(out.Types, Schema{TypeName: tname})
-				} else {
-					a, err := self.NewSchema(i)
-					if err != nil {
-						return out, fmt.Errorf("Unable to parse type element: %s", err)
-					}
-					out.Types = append(out.Types, a)
+				a, err := self.NewSchema(i)
+				if err != nil {
+					return out, fmt.Errorf("Unable to parse type element: %s", err)
 				}
+				out.Types = append(out.Types, a)
 			}
 		} else {
 			return out, fmt.Errorf("Can't parse type: %#v", base["type"])
@@ -422,6 +453,10 @@ func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
 		if id, ok := base["id"]; ok {
 			out.Id = id.(string)
 		}
+		if name, ok := base["name"]; ok {
+			out.Name = name.(string)
+		}
+
 		if binding, ok := base["inputBinding"]; ok {
 			if pos, ok := binding.(map[interface{}]interface{})["position"]; ok {
 				out.Position = pos.(int)
@@ -451,13 +486,13 @@ func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
 			}
 		}
 
-		if _, ok := base["items"]; ok {
-			if tname, ok := base["items"].(string); ok {
-				a := Schema{TypeName: tname}
-				out.Items = &a
-			} else {
-				log.Printf("Can't parse items")
+		if bItem, ok := base["items"]; ok {
+			a, err := self.NewSchema(bItem)
+			if err != nil {
+				return out, fmt.Errorf("Can't parse items")
 			}
+			log.Printf("Items Schema: %#v", a)
+			out.Items = &a
 		}
 		log.Printf("NewSchema: %#v", out)
 		return out, nil
@@ -513,7 +548,14 @@ func (self *CWLParser) NewRequirement(x interface{}) (Requirement, error) {
 			id_string := id.(string)
 			switch {
 			case id_string == "SchemaDefRequirement":
-				return self.NewSchemaDefRequirement(base)
+				schemaRequirement, err := self.NewSchemaDefRequirement(base)
+				if err != nil {
+					return schemaRequirement, err
+				}
+				for _, i := range schemaRequirement.NewTypes {
+					self.AddSchema(i)
+				}
+				return schemaRequirement, nil
 			case id_string == "InlineJavascriptRequirement":
 				return self.NewInlineJavascriptRequirement(base)
 			case id_string == "InitialWorkDirRequirement":

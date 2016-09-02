@@ -90,7 +90,9 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
     				log.Fatal(err)
 					}
 					hash_val := fmt.Sprintf("sha1$%x", hasher.Sum([]byte{}))
-					f := cwl.JSONDict{"path": p, "checksum" : hash_val, "class": "File"}
+					file.Close()
+					info, _ := os.Stat(p)
+					f := cwl.JSONDict{"location": p, "checksum" : hash_val, "class": "File", "size" : info.Size()}
 					out[o.Id] = f
 				}
 			} else {
