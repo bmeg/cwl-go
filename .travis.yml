@@ -6,6 +6,7 @@ os:
   - linux
 
 install:
+  - make depends
   - make 
 script: make test
 notifications:
