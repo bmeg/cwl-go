@@ -1,0 +1,12 @@
+sudo: false
+language: go
+go:
+  - tip
+os:
+  - linux
+
+install:
+  - make 
+script: make test
+notifications:
+  email: false
