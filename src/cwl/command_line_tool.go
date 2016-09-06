@@ -75,10 +75,13 @@ func (self jobArgArray) Swap(i, j int) {
 
 func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]JobArgument, error) {
 	log.Printf("CommandLineTool Evalute")
-	out := make([]string, 0)
-	out = append(out, self.BaseCommand...)
 
 	args := make(jobArgArray, 0, len(self.Arguments)+len(self.Inputs))
+
+	for _, x := range self.BaseCommand {
+		args = append(args, JobArgument{Value: x, Position: -10000})
+	}
+
 	//Arguments
 	for _, x := range self.Arguments {
 		new_args, err := x.Evaluate(inputs)

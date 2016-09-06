@@ -405,6 +405,7 @@ var SCHEMA_TYPES = map[string]bool{
 	"File":    true,
 	"null":    true,
 	"string":  true,
+	"stdout":  true,
 }
 
 func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
