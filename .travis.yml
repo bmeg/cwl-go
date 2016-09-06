@@ -6,7 +6,7 @@ os:
 before_install:
   - sudo apt-get update
   - sudo apt-get install python-virtualenv
-  - sudo pip install -U setuptools
+  - sudo pip install --upgrade pip setuptools
 install:
   - make depends
   - make 
