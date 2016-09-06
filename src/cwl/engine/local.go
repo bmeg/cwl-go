@@ -1,17 +1,17 @@
 package cwl_engine
 
 import (
-	"fmt"
 	"cwl"
+	"fmt"
 	//"encoding/json"
+	"crypto/sha1"
 	"gopkg.in/yaml.v2"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"crypto/sha1"
-	"io"
 )
 
 func NewLocalRunner(config Config) CWLRunner {
@@ -27,7 +27,7 @@ func (self LocalRunner) LocationToPath(location string) string {
 }
 
 func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
-	log.Printf("Command Files: %#v", job.Files)
+	log.Printf("Command Files: %#v", job.GetFiles)
 	log.Printf("Command Inputs: %#v", job.Inputs)
 
 	inputs := MapInputs(job.Inputs, self)
@@ -36,25 +36,32 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 	if err != nil {
 		return cwl.JSONDict{}, fmt.Errorf("Unable to create working dir")
 	}
-	log.Printf("Command Args: %s", job.Cmd)
+	log.Printf("Command Args: %#v", job.Cmd)
 
-	cmd_args := make([]string, len(job.Cmd))
+	cmd_args := []string{}
+
+	js_eval := cwl.JSEvaluator{Inputs: inputs}
+
 	for i := range job.Cmd {
-		cmd_args[i], _ = cwl.ExpressionEvaluate(job.Cmd[i], inputs)
+		s, err := job.Cmd[i].Evaluate(js_eval)
+		if err != nil {
+			return cwl.JSONDict{}, fmt.Errorf("Expression Eval failed: %s", err)
+		}
+		cmd_args = append(cmd_args, s...)
 	}
-
+	log.Printf("CMD: %s", cmd_args)
 	cmd := exec.Command(cmd_args[0], cmd_args[1:]...)
 
 	if job.Stdout != "" {
-		stdout, _ := cwl.ExpressionEvaluate(job.Stdout, inputs)
+		stdout, _ := js_eval.EvaluateExpression(job.Stdout, nil)
 		cmd.Stdout, _ = os.Create(filepath.Join(workdir, stdout))
 	}
 	if job.Stderr != "" {
-		stderr, _ := cwl.ExpressionEvaluate(job.Stderr, inputs)
+		stderr, _ := js_eval.EvaluateExpression(job.Stderr, nil)
 		cmd.Stderr, _ = os.Create(filepath.Join(workdir, stderr))
 	}
 	if job.Stdin != "" {
-		stdin, _ := cwl.ExpressionEvaluate(job.Stdin, inputs)
+		stdin, _ := js_eval.EvaluateExpression(job.Stdin, nil)
 		log.Printf("STDIN: %s", stdin)
 		var err error
 		cmd.Stdin, err = os.Open(stdin)
@@ -77,7 +84,7 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 	}
 
 	out := cwl.JSONDict{}
-	for _, o := range job.Files {
+	for _, o := range job.GetFiles() {
 		if o.Output {
 			if o.Glob != "" { //BUG: should actually type check the schema declaration here
 				log.Printf("Output %s", filepath.Join(workdir, o.Glob))
@@ -87,12 +94,12 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 					hasher := sha1.New()
 					file, _ := os.Open(p)
 					if _, err := io.Copy(hasher, file); err != nil {
-    				log.Fatal(err)
+						log.Fatal(err)
 					}
 					hash_val := fmt.Sprintf("sha1$%x", hasher.Sum([]byte{}))
 					file.Close()
 					info, _ := os.Stat(p)
-					f := cwl.JSONDict{"location": p, "checksum" : hash_val, "class": "File", "size" : info.Size()}
+					f := cwl.JSONDict{"location": p, "checksum": hash_val, "class": "File", "size": info.Size()}
 					out[o.Id] = f
 				}
 			} else {

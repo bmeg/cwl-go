@@ -13,12 +13,27 @@ const RUNTIME_FIELD = "runtime"
 const ERROR_FIELD = "error"
 
 type Job struct {
-	Cmd    []string
-	Files  []JobFile
+	Cmd    []JobArgument
 	Stdout string
 	Stderr string
 	Stdin  string
 	Inputs JSONDict
+}
+
+type JSEvaluator struct {
+	Inputs  JSONDict
+	Runtime JSONDict
+	Outputs JSONDict
+}
+
+type JobArgument struct {
+	Id       string
+	Position int
+	Value    string
+	Join     string
+	Prefix   string
+	File     *JobFile
+	Children []JobArgument
 }
 
 type JobFile struct {
@@ -57,12 +72,6 @@ type CommandLineTool struct {
 	Stdout       string
 	Stderr       string
 	Stdin        string
-}
-
-type cmdArg struct {
-	position int
-	id       string
-	value    []string
 }
 
 type WorkflowInput struct {

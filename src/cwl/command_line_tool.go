@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"sort"
-	"strings"
 )
 
 func (self CommandLineTool) NewGraphState(inputs JSONDict) GraphState {
@@ -48,87 +47,70 @@ func (self CommandLineTool) GenerateJob(step string, graphState GraphState) (Job
 	if i, ok := graphState[INPUT_FIELD]; !ok {
 		return Job{}, fmt.Errorf("%s Inputs not ready", step)
 	} else {
-		cmd, files, err := self.Evaluate(i[RESULTS_FIELD].(JSONDict))
+		args, err := self.Evaluate(i[RESULTS_FIELD].(JSONDict))
 		if err != nil {
 			log.Printf("Job Eval Error: %s", err)
 			return Job{}, err
 		}
-		return Job{Cmd: cmd, Files: files, Stderr: self.Stderr, Stdout: self.Stdout, Stdin: self.Stdin, Inputs: i[RESULTS_FIELD].(JSONDict)}, nil
+		return Job{Cmd: args, Stderr: self.Stderr, Stdout: self.Stdout, Stdin: self.Stdin, Inputs: i[RESULTS_FIELD].(JSONDict)}, nil
 	}
 }
 
-type cmdArgArray []cmdArg
+type jobArgArray []JobArgument
 
-func (self cmdArgArray) Len() int {
+func (self jobArgArray) Len() int {
 	return len(self)
 }
 
-func (self cmdArgArray) Less(i, j int) bool {
-	if (self)[i].position == (self)[j].position {
-		return (self)[i].id < (self)[j].id
+func (self jobArgArray) Less(i, j int) bool {
+	if (self)[i].Position == (self)[j].Position {
+		return (self)[i].Id < (self)[j].Id
 	}
-	return (self)[i].position < (self)[j].position
+	return (self)[i].Position < (self)[j].Position
 }
 
-func (self cmdArgArray) Swap(i, j int) {
+func (self jobArgArray) Swap(i, j int) {
 	(self)[i], (self)[j] = (self)[j], (self)[i]
 }
 
-func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
+func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]JobArgument, error) {
 	log.Printf("CommandLineTool Evalute")
 	out := make([]string, 0)
 	out = append(out, self.BaseCommand...)
 
-	oFiles := []JobFile{}
-
-	args := make(cmdArgArray, 0, len(self.Arguments)+len(self.Inputs))
+	args := make(jobArgArray, 0, len(self.Arguments)+len(self.Inputs))
 	//Arguments
 	for _, x := range self.Arguments {
-		e, files, err := x.Evaluate(inputs)
+		new_args, err := x.Evaluate(inputs)
 		if err != nil {
 			log.Printf("Argument Error: %s", err)
-			return []string{}, []JobFile{}, err
+			return []JobArgument{}, err
 		}
-		c := cmdArg{
-			position: x.Position,
-			id:       "",
-			value:    e,
-		}
-		args = append(args, c)
-		oFiles = append(oFiles, files...)
+		args = append(args, new_args)
 	}
 	//Inputs
 	for _, x := range self.Inputs {
-		e, files, err := x.Evaluate(inputs)
+		new_args, err := x.Evaluate(inputs)
 		if err != nil {
 			log.Printf("Input Error: %s", err)
-			return []string{}, []JobFile{}, err
+			return []JobArgument{}, err
 		}
-		c := cmdArg{
-			position: x.Position,
-			id:       x.Id,
-			value:    e,
-		}
-		args = append(args, c)
-		oFiles = append(oFiles, files...)
+		args = append(args, new_args)
 	}
 
 	//Outputs
 	for _, x := range self.Outputs {
-		_, files, err := x.Evaluate(inputs)
+		new_args, err := x.Evaluate(inputs)
 		if err != nil {
 			log.Printf("Output Error: %s", err)
-			return []string{}, []JobFile{}, err
+			return []JobArgument{}, err
 		}
-		oFiles = append(oFiles, files...)
+		args = append(args, new_args)
 	}
 
 	sort.Stable(args)
-	for _, x := range args {
-		out = append(out, x.value...)
-	}
-	log.Printf("Out: %v", out)
-	return out, oFiles, nil
+	log.Printf("Out: %v", args)
+	return args, nil
 }
 
 func (self *Schema) IsOptional() bool {
@@ -140,9 +122,8 @@ func (self *Schema) IsOptional() bool {
 	return false
 }
 
-func (self *Schema) SchemaEvaluate(value interface{}) ([]string, []JobFile, error) {
-	out_args := []string{}
-	out_files := []JobFile{}
+func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
+	out_args := JobArgument{Id: self.Id, Prefix: self.Prefix, Join: self.ItemSeparator}
 
 	typeName := self.TypeName
 
@@ -162,8 +143,8 @@ func (self *Schema) SchemaEvaluate(value interface{}) ([]string, []JobFile, erro
 			if class, ok := base["class"]; ok {
 				if class.(string) == "File" {
 					loc := base["location"].(string)
-					out_args = []string{loc}
-					out_files = []JobFile{JobFile{Location: loc}}
+					//BUG: this way of packing up a file name doesn't make sense and breaks the path mapper
+					out_args = JobArgument{Id: self.Id, Position: self.Position, Value: "$(self.location)", File: &JobFile{Location: loc}}
 				} else {
 					log.Printf("Unknown class %s", class)
 				}
@@ -174,80 +155,77 @@ func (self *Schema) SchemaEvaluate(value interface{}) ([]string, []JobFile, erro
 			log.Printf("File input not formatted correctly: %#v", value)
 		}
 	} else if typeName == "int" {
-		out_args = []string{fmt.Sprintf("%d", value.(int))}
+		out_args = JobArgument{Id: self.Id, Value: fmt.Sprintf("%d", value.(int))}
 	} else if typeName == "boolean" {
 		if value.(bool) {
-			out_args = []string{self.Prefix}
+			out_args.Prefix = self.Prefix
 		}
 	} else if typeName == "array_holder" {
-		o, f, err := self.Types[0].SchemaEvaluate(value)
+		o, err := self.Types[0].SchemaEvaluate(value)
 		if err != nil {
-			return []string{}, []JobFile{}, fmt.Errorf("Bad array '%s' (%#v): %s", typeName, *self, err)
+			return JobArgument{}, fmt.Errorf("Bad array '%s' (%#v): %s", typeName, *self, err)
 		}
 		out_args = o
-		out_files = f
 	} else if typeName == "array" {
 		if base, ok := value.([]interface{}); ok {
-			log.Printf("ArrayItem Schema: %#v", self)
+			log.Printf("Evalutate ArrayItem Schema: %#v", self)
 			for _, i := range base {
-				e, files, err := self.Items.SchemaEvaluate(i)
+				e, err := self.Items.SchemaEvaluate(i)
 				if err != nil {
-					return []string{}, []JobFile{}, err
+					return JobArgument{}, err
 				}
 				if self.Prefix != "" {
-					out_args = append(out_args, self.Prefix)
+					out_args.Children = append(out_args.Children, JobArgument{Value: self.Prefix})
 				}
-				out_args = append(out_args, e...)
-				out_files = append(out_files, files...)
+				out_args.Children = append(out_args.Children, e)
 			}
 		}
 	} else {
-		return []string{}, []JobFile{}, fmt.Errorf("Unknown Type '%s' (%#v)", typeName, *self)
+		return JobArgument{}, fmt.Errorf("Unknown Type '%s' (%#v)", typeName, *self)
 	}
+
 	if self.ItemSeparator != "" {
-		out_args = []string{strings.Join(out_args, self.ItemSeparator)}
+		out_args.Join = self.ItemSeparator
 	}
 	if self.Prefix != "" && typeName != "array" && typeName != "boolean" {
-		out_args = append([]string{self.Prefix}, out_args...)
+		out_args.Prefix = self.Prefix
 	}
-	return out_args, out_files, nil
+	out_args.Position = self.Position
+	return out_args, nil
 }
 
-func (self *CommandInput) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
-	value_str := []string{}
+func (self *CommandInput) Evaluate(inputs JSONDict) (JobArgument, error) {
+	out_arg := JobArgument{}
 
-	oFiles := []JobFile{}
 	if base, ok := inputs[self.Id]; ok {
-		var err error
-		files := []JobFile{}
-		value_str, files, err = self.SchemaEvaluate(base)
+		a, err := self.SchemaEvaluate(base)
 		if err != nil {
 			log.Printf("Schema Evaluation Error: %s", err)
-			return []string{}, []JobFile{}, err
+			return JobArgument{}, err
 		}
-		oFiles = append(oFiles, files...)
+		out_arg = a
 	} else {
 		if self.Default != nil {
-			var err error
-			files := []JobFile{}
-			value_str, files, err = self.SchemaEvaluate(*self.Default)
+			a, err := self.SchemaEvaluate(*self.Default)
 			if err != nil {
 				log.Printf("Schema Evaluation Error: %s", err)
-				return []string{}, []JobFile{}, err
+				return JobArgument{}, err
 			}
-			oFiles = append(oFiles, files...)
+			out_arg = a
+			log.Printf("Default Eval: %s %#v", self.Id, out_arg)
 		} else if self.IsOptional() {
-			return []string{}, []JobFile{}, nil
+			return JobArgument{}, nil
 		} else {
-			return []string{}, []JobFile{}, fmt.Errorf("Input %s not found", self.Id)
+			return JobArgument{}, fmt.Errorf("Input %s not found", self.Id)
 		}
 	}
-	return value_str, oFiles, nil
+	return out_arg, nil
 }
 
-func (self *CommandOutput) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
-	return []string{}, []JobFile{
-		JobFile{
+func (self *CommandOutput) Evaluate(inputs JSONDict) (JobArgument, error) {
+	return JobArgument{
+		Id: self.Id,
+		File: &JobFile{
 			Id:     self.Id,
 			Output: true,
 			Glob:   self.Glob,
@@ -255,25 +233,16 @@ func (self *CommandOutput) Evaluate(inputs JSONDict) ([]string, []JobFile, error
 	}, nil
 }
 
-func (self *Argument) Evaluate(inputs JSONDict) ([]string, []JobFile, error) {
+func (self *Argument) Evaluate(inputs JSONDict) (JobArgument, error) {
 	if self.Value != nil {
-		return []string{*self.Value}, []JobFile{}, nil
+		return JobArgument{Value: *self.Value}, nil
 	} else if self.ValueFrom != nil {
-		//BUG: This is wrong. Need to evaluate expressions right before runtime (ie after paths are filed out)
-		//But first need some structure to keep arrays togeather so they can be joined by ItemSeparator...
-		exp, err := ExpressionEvaluate(*self.ValueFrom, inputs)
-		if err != nil {
-			log.Printf("Expression Error: %s", err)
-			return []string{}, []JobFile{}, err
-		}
-		value_str := []string{exp}
-		if self.ItemSeparator != nil {
-			value_str = []string{strings.Join(value_str, *self.ItemSeparator)}
-		}
+		out := JobArgument{Value: *self.ValueFrom}
 		if self.Prefix != nil {
-			value_str = append([]string{*self.Prefix}, value_str...)
+			out.Prefix = *self.Prefix
 		}
-		return value_str, []JobFile{}, nil
+		out.Position = self.Position
+		return out, nil
 	}
-	return []string{}, []JobFile{}, nil
+	return JobArgument{}, nil
 }

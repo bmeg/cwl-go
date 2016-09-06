@@ -95,3 +95,10 @@ func (self GraphState) GetData(path string) interface{} {
 	}
 	return nil
 }
+
+func (self *JobFile) ToJSONDict() JSONDict {
+	return JSONDict{
+		"class":    "File",
+		"location": self.Location,
+	}
+}
