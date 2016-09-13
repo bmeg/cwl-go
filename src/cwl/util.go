@@ -52,48 +52,40 @@ func (self GraphState) HasResults(stepId string) bool {
 	return false
 }
 
-func (self GraphState) HasData(path string) bool {
-	tmp := strings.Split("/", path)
+func (self GraphState) GetData(path string) (interface{}, bool) {
+	tmp := strings.Split(path, "/")
+	log.Printf("Find Path: %#v", tmp)
 	if len(tmp) == 1 {
 		if base, ok := self[INPUT_FIELD]; ok {
-			if _, ok := (base[RESULTS_FIELD].(JSONDict))[path]; ok {
-				return true
+			if strings.HasPrefix(path, "#") {
+				path = path[1:]
 			}
-		} else {
-			log.Printf("Weird GraphState data, %#v", self["#"])
-		}
-	} else {
-		if base, ok := self[tmp[0]]; ok {
-			if _, ok := base[RESULTS_FIELD]; ok {
-				if _, ok := (base[RESULTS_FIELD].(JSONDict))[tmp[1]]; ok {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-func (self GraphState) GetData(path string) interface{} {
-	tmp := strings.Split("/", path)
-	if len(tmp) == 1 {
-		if base, ok := self[INPUT_FIELD]; ok {
 			if v, ok := (base[RESULTS_FIELD].(JSONDict))[path]; ok {
-				return v
+				return v, true
+			} else {
+				return nil, false
 			}
 		} else {
-			log.Printf("Weird GraphState data, %#v", self["#"])
+			return nil, false
 		}
 	} else {
+		if strings.HasPrefix(tmp[0], "#") {
+			tmp[0] = tmp[0][1:]
+		}
+		log.Printf("Path: %#v", tmp)
 		if base, ok := self[tmp[0]]; ok {
 			if _, ok := base[RESULTS_FIELD]; ok {
 				if v, ok := (base[RESULTS_FIELD].(JSONDict))[tmp[1]]; ok {
-					return v
+					return v, true
+				} else {
+					return nil, false
 				}
+			} else {
+				return nil, false
 			}
 		}
 	}
-	return nil
+	return nil, false
 }
 
 func (self *JobFile) ToJSONDict() JSONDict {

@@ -219,7 +219,7 @@ func (self *CommandInput) Evaluate(inputs JSONDict) (JobArgument, error) {
 		} else if self.IsOptional() {
 			return JobArgument{}, nil
 		} else {
-			return JobArgument{}, fmt.Errorf("Input %s not found", self.Id)
+			return JobArgument{}, fmt.Errorf("Input '%s' not found in %#v", self.Id, inputs)
 		}
 	}
 	return out_arg, nil

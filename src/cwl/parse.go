@@ -109,7 +109,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Inputs[n.Id] = n
 				} else {
-					log.Printf("Workflow Input error: %s", err)
+					return out, fmt.Errorf("Workflow Input error: %s", err)
 				}
 			}
 		} else if base_array, ok := base.([]interface{}); ok {
@@ -118,7 +118,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Inputs[n.Id] = n
 				} else {
-					log.Printf("Workflow Input error: %s", err)
+					return out, fmt.Errorf("Workflow Input error: %s", err)
 				}
 			}
 		}
@@ -131,7 +131,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Outputs[n.Id] = n
 				} else {
-					log.Printf("Workflow Output error: %s", err)
+					return out, fmt.Errorf("Workflow Output error: %s", err)
 				}
 			}
 		} else if base_array, ok := base.([]interface{}); ok {
@@ -140,7 +140,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Outputs[n.Id] = n
 				} else {
-					log.Printf("Workflow Output error: %s", err)
+					return out, fmt.Errorf("Workflow Output error: %s", err)
 				}
 			}
 		}
@@ -153,7 +153,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Steps[n.Id] = n
 				} else {
-					log.Printf("Workflow Step error: %s", err)
+					return out, fmt.Errorf("Workflow Step error: %s", err)
 				}
 			}
 		} else if base_array, ok := base.([]interface{}); ok {
@@ -162,7 +162,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Steps[n.Id] = n
 				} else {
-					log.Printf("Workflow Step error: %s", err)
+					return out, fmt.Errorf("Workflow Step error: %s", err)
 				}
 			}
 		}
@@ -305,7 +305,7 @@ func (self *CWLParser) NewWorkflowOutput(id string, x interface{}) (WorkflowOutp
 	}
 	out := WorkflowOutput{Schema: t}
 	if base, ok := x.(map[interface{}]interface{}); ok {
-		if s, ok := base["outputSource"]; ok {
+		if s, ok := base["source"]; ok {
 			out.OutputSource = s.(string)
 		}
 	}
@@ -314,8 +314,8 @@ func (self *CWLParser) NewWorkflowOutput(id string, x interface{}) (WorkflowOutp
 
 func (self *CWLParser) NewStep(id string, x interface{}) (Step, error) {
 	sout := Step{}
-	sout.In = map[string]string{}
-	sout.Out = map[string]string{}
+	sout.In = map[string]StepInput{}
+	sout.Out = map[string]StepOutput{}
 
 	if base, ok := x.(map[interface{}]interface{}); ok {
 		if id == "" {
@@ -325,19 +325,35 @@ func (self *CWLParser) NewStep(id string, x interface{}) (Step, error) {
 		}
 
 		if bIn, ok := base["in"]; ok {
-			if in, ok := bIn.(map[interface{}]interface{}); ok {
-				for k, v := range in {
-					sout.In[k.(string)] = v.(string)
-				}
+			inputs, err := self.NewStepInputSet(bIn)
+			if err != nil {
+				return sout, err
 			}
+			sout.In = inputs
+		} else if bIn, ok := base["inputs"]; ok {
+			inputs, err := self.NewStepInputSet(bIn)
+			if err != nil {
+				return sout, err
+			}
+			sout.In = inputs
+		} else {
+			log.Printf("Step %s has no inputs", sout.Id)
 		}
 
 		if bOut, ok := base["out"]; ok {
-			if out, ok := bOut.(map[interface{}]interface{}); ok {
-				for k, v := range out {
-					sout.Out[k.(string)] = v.(string)
-				}
+			outputs, err := self.NewStepOutputSet(bOut)
+			if err != nil {
+				return sout, err
 			}
+			sout.Out = outputs
+		} else if bOut, ok := base["outputs"]; ok {
+			outputs, err := self.NewStepOutputSet(bOut)
+			if err != nil {
+				return sout, err
+			}
+			sout.Out = outputs
+		} else {
+			log.Printf("Step %s has no output", sout.Id)
 		}
 
 		if bRun, ok := base["run"]; ok {
@@ -351,8 +367,104 @@ func (self *CWLParser) NewStep(id string, x interface{}) (Step, error) {
 			sout.Doc = cDoc
 		}
 
+	} else {
+		return sout, fmt.Errorf("Unable to parse step")
 	}
 	return sout, nil
+}
+
+func (self *CWLParser) NewStepInputSet(x interface{}) (map[string]StepInput, error) {
+	sOut := map[string]StepInput{}
+	if in, ok := x.(map[interface{}]interface{}); ok {
+		for k, v := range in {
+			i, err := self.NewStepInput(k.(string), v)
+			if err != nil {
+				return sOut, fmt.Errorf("Unable to parse step input element: %s", err)
+			}
+			sOut[i.Id] = i
+		}
+	} else if in, ok := x.([]interface{}); ok {
+		for _, v := range in {
+			i, err := self.NewStepInput("", v)
+			if err != nil {
+				return sOut, fmt.Errorf("Unable to parse step input element: %s", err)
+			}
+			sOut[i.Id] = i
+		}
+	} else {
+		return sOut, fmt.Errorf("Unable to parse step input set")
+	}
+	return sOut, nil
+}
+
+func (self *CWLParser) NewStepOutputSet(x interface{}) (map[string]StepOutput, error) {
+	sOut := map[string]StepOutput{}
+
+	if out, ok := x.(map[interface{}]interface{}); ok {
+		for k, v := range out {
+			i, err := self.NewStepOutput(k.(string), v)
+			if err != nil {
+				return sOut, fmt.Errorf("Unable to parse step output element: %s", err)
+			}
+			sOut[k.(string)] = i
+		}
+	} else if out, ok := x.([]interface{}); ok {
+		for _, v := range out {
+			i, err := self.NewStepOutput("", v)
+			if err != nil {
+				return sOut, fmt.Errorf("Unable to parse step output element: %s", err)
+			}
+			sOut[i.Id] = i
+		}
+	} else {
+		return sOut, fmt.Errorf("Unable to parse step output set: %#v", x)
+	}
+	return sOut, nil
+}
+
+func (self *CWLParser) NewStepInput(id string, x interface{}) (StepInput, error) {
+	out := StepInput{}
+	if id != "" {
+		out.Id = id
+	}
+
+	if base, ok := x.(map[interface{}]interface{}); ok {
+		if id, ok := base["id"]; ok {
+			out.Id = id.(string)
+		}
+
+		if source, ok := base["source"]; ok {
+			out.Source = source.(string)
+		}
+		if defaultVal, ok := base["default"]; ok {
+			out.Default = &defaultVal
+		}
+	} else if base, ok := x.(string); ok {
+		out.Source = base
+	} else {
+		return out, fmt.Errorf("Unable to parse step input")
+	}
+
+	return out, nil
+}
+
+func (self *CWLParser) NewStepOutput(id string, x interface{}) (StepOutput, error) {
+	out := StepOutput{}
+	if id != "" {
+		out.Id = id
+	}
+
+	if base, ok := x.(string); ok {
+		out.Id = base
+	} else if base, ok := x.(map[interface{}]interface{}); ok {
+		if b, ok := base["id"]; ok {
+			out.Id = b.(string)
+		}
+	} else {
+		return out, fmt.Errorf("Unable to parse step input")
+	}
+
+	return out, nil
 }
 
 func (self *CWLParser) NewCommandInput(id string, x interface{}) (CommandInput, error) {

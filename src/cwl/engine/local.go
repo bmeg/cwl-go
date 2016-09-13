@@ -99,7 +99,7 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 					hash_val := fmt.Sprintf("sha1$%x", hasher.Sum([]byte{}))
 					file.Close()
 					info, _ := os.Stat(p)
-					f := cwl.JSONDict{"location": p, "checksum": hash_val, "class": "File", "size": info.Size()}
+					f := map[interface{}]interface{}{"location": p, "checksum": hash_val, "class": "File", "size": info.Size()}
 					out[o.Id] = f
 				}
 			} else {

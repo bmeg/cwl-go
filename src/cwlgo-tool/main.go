@@ -44,7 +44,11 @@ func main() {
 		return
 	}
 	log.Printf("CWLDoc: %#v", cwl_doc)
-	inputs, _ := cwl.InputParse(flag.Arg(1))
+	inputs, err := cwl.InputParse(flag.Arg(1))
+	if err != nil {
+		os.Stderr.WriteString(fmt.Sprintf("Unable to parse Input document: %s\n", err))
+		return
+	}
 
 	runner := cwl_engine.NewLocalRunner(config)
 
