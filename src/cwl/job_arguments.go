@@ -23,7 +23,7 @@ func (self *JobArgument) GetFiles() []JobFile {
 	return out
 }
 
-func (self *JobArgument) Evaluate(evaluator JSEvaluator) ([]string, error) {
+func (self *JobArgument) EvaluateStrings(evaluator JSEvaluator) ([]string, error) {
 	out := []string{}
 
 	if self.Value != "" {
@@ -31,9 +31,9 @@ func (self *JobArgument) Evaluate(evaluator JSEvaluator) ([]string, error) {
 		var err error
 		if self.File != nil {
 			f := self.File.ToJSONDict()
-			e, err = evaluator.EvaluateExpression(self.Value, &f)
+			e, err = evaluator.EvaluateExpressionString(self.Value, &f)
 		} else {
-			e, err = evaluator.EvaluateExpression(self.Value, nil)
+			e, err = evaluator.EvaluateExpressionString(self.Value, nil)
 		}
 		if err != nil {
 			return []string{}, err
@@ -42,7 +42,7 @@ func (self *JobArgument) Evaluate(evaluator JSEvaluator) ([]string, error) {
 	}
 
 	for _, x := range self.Children {
-		e, err := x.Evaluate(evaluator)
+		e, err := x.EvaluateStrings(evaluator)
 		if err != nil {
 			return []string{}, err
 		}
@@ -58,4 +58,8 @@ func (self *JobArgument) Evaluate(evaluator JSEvaluator) ([]string, error) {
 	}
 
 	return out, nil
+}
+
+func (self *JobArgument) EvaluateObject(evaluator JSEvaluator) (interface{}, error) {
+	return self.RawValue, nil
 }

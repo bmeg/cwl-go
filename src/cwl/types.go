@@ -12,12 +12,21 @@ const RESULTS_FIELD = "results"
 const RUNTIME_FIELD = "runtime"
 const ERROR_FIELD = "error"
 
+const (
+	COMMAND    = iota
+	EXPRESSION = iota
+)
+
 type Job struct {
-	Cmd    []JobArgument
-	Stdout string
-	Stderr string
-	Stdin  string
-	Inputs JSONDict
+	JobType    int
+	Cmd        []JobArgument
+	Expression string
+	Stdout     string
+	Stderr     string
+	Stdin      string
+	InputData  JSONDict
+	Inputs     map[string]Schema
+	Outputs    map[string]Schema
 }
 
 type JSEvaluator struct {
@@ -30,6 +39,7 @@ type JobArgument struct {
 	Id       string
 	Position int
 	Value    string
+	RawValue interface{}
 	Join     string
 	Prefix   string
 	File     *JobFile
@@ -123,7 +133,31 @@ type CommandOutput struct {
 	Glob string
 }
 
+type ExpressionTool struct {
+	Id           string
+	Inputs       map[string]ExpressionInput
+	Outputs      map[string]ExpressionOutput
+	Expression   string
+	Requirements []Requirement
+}
+
+type ExpressionInput struct {
+	Schema
+}
+
+type ExpressionOutput struct {
+	Schema
+}
+
 type Requirement interface{}
+
+type UnsupportedRequirement struct {
+	Message string
+}
+
+func (e UnsupportedRequirement) Error() string {
+	return e.Message
+}
 
 type SchemaDefRequirement struct {
 	NewTypes []Schema

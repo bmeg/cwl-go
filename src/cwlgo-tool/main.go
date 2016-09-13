@@ -41,6 +41,9 @@ func main() {
 	cwl_doc, err := cwl.Parse(flag.Arg(0))
 	if err != nil {
 		os.Stderr.WriteString(fmt.Sprintf("Unable to parse CWL document: %s\n", err))
+		if _, ok := err.(cwl.UnsupportedRequirement); ok {
+			os.Exit(33)
+		}
 		return
 	}
 	log.Printf("CWLDoc: %#v", cwl_doc)
@@ -51,6 +54,7 @@ func main() {
 	}
 
 	runner := cwl_engine.NewLocalRunner(config)
+	expression_runner := cwl_engine.NewExpressionRunner(config)
 
 	graphState := cwl_doc.NewGraphState(inputs)
 	for !cwl_doc.Done(graphState) {
@@ -61,12 +65,21 @@ func main() {
 				log.Printf("%s", err)
 				return
 			}
-			out, err := runner.RunCommand(job)
-			if err != nil {
-				log.Printf("Runtime Error: %s", err)
-				return
+			if job.JobType == cwl.EXPRESSION {
+				out, err := expression_runner.RunCommand(job)
+				if err != nil {
+					log.Printf("Runtime Error: %s", err)
+					return
+				}
+				graphState = cwl_doc.UpdateStepResults(graphState, step, out)
+			} else {
+				out, err := runner.RunCommand(job)
+				if err != nil {
+					log.Printf("Runtime Error: %s", err)
+					return
+				}
+				graphState = cwl_doc.UpdateStepResults(graphState, step, out)
 			}
-			graphState = cwl_doc.UpdateStepResults(graphState, step, out)
 			readyCount += 1
 		}
 		if readyCount == 0 {
@@ -75,6 +88,7 @@ func main() {
 		}
 	}
 	out := cwl_doc.GetResults(graphState)
+	log.Printf("doc results: %#v", out)
 	fmt.Printf("%s\n", string(out.ToString()))
 
 }

@@ -52,7 +52,7 @@ func (self CommandLineTool) GenerateJob(step string, graphState GraphState) (Job
 			log.Printf("Job Eval Error: %s", err)
 			return Job{}, err
 		}
-		return Job{Cmd: args, Stderr: self.Stderr, Stdout: self.Stdout, Stdin: self.Stdin, Inputs: i[RESULTS_FIELD].(JSONDict)}, nil
+		return Job{JobType: COMMAND, Cmd: args, Stderr: self.Stderr, Stdout: self.Stdout, Stdin: self.Stdin, InputData: i[RESULTS_FIELD].(JSONDict)}, nil
 	}
 }
 
@@ -163,6 +163,8 @@ func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
 		if value.(bool) {
 			out_args.Prefix = self.Prefix
 		}
+	} else if typeName == "Any" {
+		out_args = JobArgument{Id: self.Id, Value: fmt.Sprintf("%s", value), RawValue: value}
 	} else if typeName == "array_holder" {
 		o, err := self.Types[0].SchemaEvaluate(value)
 		if err != nil {

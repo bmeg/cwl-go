@@ -1,10 +1,9 @@
 package cwl_engine
 
 import (
+	"crypto/sha1"
 	"cwl"
 	"fmt"
-	//"encoding/json"
-	"crypto/sha1"
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
@@ -28,9 +27,9 @@ func (self LocalRunner) LocationToPath(location string) string {
 
 func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 	log.Printf("Command Files: %#v", job.GetFiles)
-	log.Printf("Command Inputs: %#v", job.Inputs)
+	log.Printf("Command Inputs: %#v", job.InputData)
 
-	inputs := MapInputs(job.Inputs, self)
+	inputs := MapInputs(job.InputData, self)
 
 	workdir, err := ioutil.TempDir(self.Config.TmpdirPrefix, "cwlwork_")
 	if err != nil {
@@ -43,7 +42,7 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 	js_eval := cwl.JSEvaluator{Inputs: inputs}
 
 	for i := range job.Cmd {
-		s, err := job.Cmd[i].Evaluate(js_eval)
+		s, err := job.Cmd[i].EvaluateStrings(js_eval)
 		if err != nil {
 			return cwl.JSONDict{}, fmt.Errorf("Expression Eval failed: %s", err)
 		}
@@ -53,15 +52,15 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 	cmd := exec.Command(cmd_args[0], cmd_args[1:]...)
 
 	if job.Stdout != "" {
-		stdout, _ := js_eval.EvaluateExpression(job.Stdout, nil)
+		stdout, _ := js_eval.EvaluateExpressionString(job.Stdout, nil)
 		cmd.Stdout, _ = os.Create(filepath.Join(workdir, stdout))
 	}
 	if job.Stderr != "" {
-		stderr, _ := js_eval.EvaluateExpression(job.Stderr, nil)
+		stderr, _ := js_eval.EvaluateExpressionString(job.Stderr, nil)
 		cmd.Stderr, _ = os.Create(filepath.Join(workdir, stderr))
 	}
 	if job.Stdin != "" {
-		stdin, _ := js_eval.EvaluateExpression(job.Stdin, nil)
+		stdin, _ := js_eval.EvaluateExpressionString(job.Stdin, nil)
 		log.Printf("STDIN: %s", stdin)
 		var err error
 		cmd.Stdin, err = os.Open(stdin)
