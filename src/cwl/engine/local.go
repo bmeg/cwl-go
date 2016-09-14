@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 )
 
 func NewLocalRunner(config Config) CWLRunner {
@@ -71,6 +72,24 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 	cmd.Dir = workdir
 	log.Printf("Workdir: %s", workdir)
 	cmd_err := cmd.Run()
+	if exiterr, ok := cmd_err.(*exec.ExitError); ok {
+		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+			exitStatus := status.ExitStatus()
+			log.Printf("Exit Status: %d", exitStatus)
+			found := false
+			for _, i := range job.SuccessCodes {
+				if i == exitStatus {
+					found = true
+				}
+			}
+			if !found {
+				return cwl.JSONDict{}, cmd_err
+			}
+			cmd_err = nil
+		}
+	} else {
+		log.Printf("cmd.Run: %v", err)
+	}
 
 	meta := map[interface{}]interface{}{}
 	if _, err := os.Stat(filepath.Join(workdir, "cwl.output.json")); !os.IsNotExist(err) {

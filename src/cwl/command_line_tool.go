@@ -52,7 +52,14 @@ func (self CommandLineTool) GenerateJob(step string, graphState GraphState) (Job
 			log.Printf("Job Eval Error: %s", err)
 			return Job{}, err
 		}
-		return Job{JobType: COMMAND, Cmd: args, Stderr: self.Stderr, Stdout: self.Stdout, Stdin: self.Stdin, InputData: i[RESULTS_FIELD].(JSONDict)}, nil
+		return Job{JobType: COMMAND,
+			Cmd:          args,
+			Stderr:       self.Stderr,
+			Stdout:       self.Stdout,
+			Stdin:        self.Stdin,
+			InputData:    i[RESULTS_FIELD].(JSONDict),
+			SuccessCodes: self.SuccessCodes,
+		}, nil
 	}
 }
 

@@ -280,6 +280,15 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 		out.Stdin = base.(string)
 	}
 
+	if base, ok := doc["successCodes"]; ok {
+		out.SuccessCodes = []int{}
+		if abase, ok := base.([]interface{}); ok {
+			for _, i := range abase {
+				out.SuccessCodes = append(out.SuccessCodes, i.(int))
+			}
+		}
+	}
+
 	log.Printf("Parse CommandLineTool: %v", out)
 	return out, nil
 }
@@ -753,7 +762,20 @@ func (self *CWLParser) NewRequirements(x interface{}) ([]Requirement, error) {
 	out := []Requirement{}
 	if base, ok := x.([]interface{}); ok {
 		for _, i := range base {
-			o, err := self.NewRequirement(i)
+			if base, ok := x.(map[interface{}]interface{}); ok {
+				if id, ok := base["class"]; ok {
+					id_string := id.(string)
+					o, err := self.NewRequirement(id_string, i)
+					if err != nil {
+						return out, err
+					}
+					out = append(out, o)
+				}
+			}
+		}
+	} else if base, ok := x.(map[interface{}]interface{}); ok {
+		for k, v := range base {
+			o, err := self.NewRequirement(k.(string), v)
 			if err != nil {
 				return out, err
 			}
@@ -765,57 +787,52 @@ func (self *CWLParser) NewRequirements(x interface{}) ([]Requirement, error) {
 	return out, nil
 }
 
-func (self *CWLParser) NewRequirement(x interface{}) (Requirement, error) {
-	if base, ok := x.(map[interface{}]interface{}); ok {
-		if id, ok := base["class"]; ok {
-			id_string := id.(string)
-			switch {
-			case id_string == "SchemaDefRequirement":
-				schemaRequirement, err := self.NewSchemaDefRequirement(base)
-				if err != nil {
-					return schemaRequirement, err
-				}
-				for _, i := range schemaRequirement.NewTypes {
-					self.AddSchema(i)
-				}
-				return schemaRequirement, nil
-			case id_string == "InlineJavascriptRequirement":
-				return self.NewInlineJavascriptRequirement(base)
-			case id_string == "InitialWorkDirRequirement":
-				return self.NewInitialWorkDirRequirement(base)
-			default:
-				e := UnsupportedRequirement{Message: fmt.Sprintf("Unknown requirement: %s", id_string)}
-				return nil, e
-			}
-		} else {
-			return nil, fmt.Errorf("Undefined requirement")
+func (self *CWLParser) NewRequirement(id_string string, conf interface{}) (Requirement, error) {
+	switch {
+	case id_string == "SchemaDefRequirement":
+		schemaRequirement, err := self.NewSchemaDefRequirement(conf)
+		if err != nil {
+			return schemaRequirement, err
 		}
+		for _, i := range schemaRequirement.NewTypes {
+			self.AddSchema(i)
+		}
+		return schemaRequirement, nil
+	case id_string == "InlineJavascriptRequirement":
+		return self.NewInlineJavascriptRequirement(conf)
+	case id_string == "InitialWorkDirRequirement":
+		return self.NewInitialWorkDirRequirement(conf)
+	default:
+		e := UnsupportedRequirement{Message: fmt.Sprintf("Unknown requirement: %s", id_string)}
+		return nil, e
 	}
 	return nil, fmt.Errorf("Undefined requirement")
 }
 
-func (self *CWLParser) NewSchemaDefRequirement(x map[interface{}]interface{}) (SchemaDefRequirement, error) {
+func (self *CWLParser) NewSchemaDefRequirement(conf interface{}) (SchemaDefRequirement, error) {
 	newTypes := []Schema{}
-	if base, ok := x["types"]; ok {
-		if fieldArray, ok := base.([]interface{}); ok {
-			for _, i := range fieldArray {
-				d, err := self.NewSchema(i)
-				if err != nil {
-					return SchemaDefRequirement{}, fmt.Errorf("Unknown DataType: %s", err)
+	if x, ok := conf.(map[interface{}]interface{}); ok {
+		if base, ok := x["types"]; ok {
+			if fieldArray, ok := base.([]interface{}); ok {
+				for _, i := range fieldArray {
+					d, err := self.NewSchema(i)
+					if err != nil {
+						return SchemaDefRequirement{}, fmt.Errorf("Unknown DataType: %s", err)
+					}
+					newTypes = append(newTypes, d)
 				}
-				newTypes = append(newTypes, d)
 			}
+		} else {
+			return SchemaDefRequirement{}, fmt.Errorf("No types column")
 		}
-	} else {
-		return SchemaDefRequirement{}, fmt.Errorf("No types column")
 	}
 	return SchemaDefRequirement{NewTypes: newTypes}, nil
 }
 
-func (self *CWLParser) NewInlineJavascriptRequirement(x map[interface{}]interface{}) (InlineJavascriptRequirement, error) {
+func (self *CWLParser) NewInlineJavascriptRequirement(x interface{}) (InlineJavascriptRequirement, error) {
 	return InlineJavascriptRequirement{}, nil
 }
 
-func (self *CWLParser) NewInitialWorkDirRequirement(x map[interface{}]interface{}) (InitialWorkDirRequirement, error) {
+func (self *CWLParser) NewInitialWorkDirRequirement(x interface{}) (InitialWorkDirRequirement, error) {
 	return InitialWorkDirRequirement{}, nil
 }

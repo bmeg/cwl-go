@@ -18,15 +18,16 @@ const (
 )
 
 type Job struct {
-	JobType    int
-	Cmd        []JobArgument
-	Expression string
-	Stdout     string
-	Stderr     string
-	Stdin      string
-	InputData  JSONDict
-	Inputs     map[string]Schema
-	Outputs    map[string]Schema
+	JobType      int
+	Cmd          []JobArgument
+	Expression   string
+	Stdout       string
+	Stderr       string
+	Stdin        string
+	InputData    JSONDict
+	Inputs       map[string]Schema
+	Outputs      map[string]Schema
+	SuccessCodes []int
 }
 
 type JSEvaluator struct {
@@ -82,6 +83,7 @@ type CommandLineTool struct {
 	Stdout       string
 	Stderr       string
 	Stdin        string
+	SuccessCodes []int
 }
 
 type WorkflowInput struct {

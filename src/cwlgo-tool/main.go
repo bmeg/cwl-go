@@ -44,15 +44,20 @@ func main() {
 		if _, ok := err.(cwl.UnsupportedRequirement); ok {
 			os.Exit(33)
 		}
-		return
+		os.Exit(1)
 	}
 	log.Printf("CWLDoc: %#v", cwl_doc)
-	inputs, err := cwl.InputParse(flag.Arg(1))
-	if err != nil {
-		os.Stderr.WriteString(fmt.Sprintf("Unable to parse Input document: %s\n", err))
-		return
+	var inputs cwl.JSONDict
+	if len(flag.Args()) == 1 {
+		inputs = cwl.JSONDict{}
+	} else {
+		var err error
+		inputs, err = cwl.InputParse(flag.Arg(1))
+		if err != nil {
+			os.Stderr.WriteString(fmt.Sprintf("Unable to parse Input document: %s\n", err))
+			os.Exit(1)
+		}
 	}
-
 	runner := cwl_engine.NewLocalRunner(config)
 	expression_runner := cwl_engine.NewExpressionRunner(config)
 
@@ -63,20 +68,20 @@ func main() {
 			job, err := cwl_doc.GenerateJob(step, graphState)
 			if err != nil {
 				log.Printf("%s", err)
-				return
+				os.Exit(1)
 			}
 			if job.JobType == cwl.EXPRESSION {
 				out, err := expression_runner.RunCommand(job)
 				if err != nil {
 					log.Printf("Runtime Error: %s", err)
-					return
+					os.Exit(1)
 				}
 				graphState = cwl_doc.UpdateStepResults(graphState, step, out)
 			} else {
 				out, err := runner.RunCommand(job)
 				if err != nil {
 					log.Printf("Runtime Error: %s", err)
-					return
+					os.Exit(1)
 				}
 				graphState = cwl_doc.UpdateStepResults(graphState, step, out)
 			}
