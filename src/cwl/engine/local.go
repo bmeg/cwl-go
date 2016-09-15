@@ -101,14 +101,14 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 		return meta, nil
 	}
 
-	out := cwl.JSONDict{}
+	out_files := cwl.JSONDict{}
 	for _, o := range job.GetFiles() {
 		if o.Output {
-			if o.Glob != "" { //BUG: should actually type check the schema declaration here
+			if o.Glob != "" {
 				log.Printf("Output %s", filepath.Join(workdir, o.Glob))
 				g, _ := filepath.Glob(filepath.Join(workdir, o.Glob))
 				for _, p := range g {
-					log.Printf("Found %s", p)
+					log.Printf("Found %s %s", o.Id, p)
 					hasher := sha1.New()
 					file, _ := os.Open(p)
 					if _, err := io.Copy(hasher, file); err != nil {
@@ -118,12 +118,20 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 					file.Close()
 					info, _ := os.Stat(p)
 					f := map[interface{}]interface{}{"location": p, "checksum": hash_val, "class": "File", "size": info.Size()}
-					out[o.Id] = f
+					out_files[o.Id] = f
 				}
-			} else {
-				if a, ok := meta[o.Id]; ok {
-					out[o.Id] = a
-				}
+			}
+		}
+	}
+
+	out := cwl.JSONDict{}
+	for k, v := range job.Outputs {
+		if a, ok := meta[k]; ok {
+			out[k] = a
+		}
+		if v.TypeName == "File" || v.TypeName == "stdout" || v.TypeName == "stderr" {
+			if _, ok := out_files[k]; ok {
+				out[k] = out_files[k]
 			}
 		}
 	}

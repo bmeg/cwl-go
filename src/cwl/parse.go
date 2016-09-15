@@ -592,8 +592,16 @@ func (self *CWLParser) NewCommandOutput(id string, x interface{}) (CommandOutput
 			} else {
 				log.Printf("Output Binding format weird")
 			}
+		} else if bType, ok := base["type"]; ok {
+			if bType == "stdout" {
+				//do nothing here, just avoiding warning logging
+			} else if bType == "stderr" {
+				//do nothing here, just avoiding warning logging
+			} else {
+				log.Printf("Unknown output binding: %s %s", out.Id, base)
+			}
 		} else {
-			log.Printf("No output binding: %s", out.Id)
+			log.Printf("No output binding: %s %s", out.Id, base)
 		}
 	} else {
 		return out, fmt.Errorf("Unable to parse CommandOutput: %v", x)
@@ -636,6 +644,7 @@ var SCHEMA_TYPES = map[string]bool{
 	"null":    true,
 	"string":  true,
 	"stdout":  true,
+	"stderr":  true,
 	"Any":     true,
 }
 

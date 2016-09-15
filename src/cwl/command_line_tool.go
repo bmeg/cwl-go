@@ -52,13 +52,50 @@ func (self CommandLineTool) GenerateJob(step string, graphState GraphState) (Job
 			log.Printf("Job Eval Error: %s", err)
 			return Job{}, err
 		}
+		stdout := self.Stdout
+		stderr := self.Stderr
+		stdin := self.Stdin
+
+		outputs := map[string]Schema{}
+		for k, v := range self.Outputs {
+			outputs[k] = v.Schema
+			//for stdout/stderr shortcuts (that have the type stdout/stderr)
+			//create the temp files that will be used to store the output
+			if v.Schema.TypeName == "stdout" {
+				if stdout == "" {
+					stdout = "__cwl_stdout"
+				}
+				for i := range args {
+					if args[i].Id == outputs[k].Id {
+						args[i].File.Glob = stdout
+					}
+				}
+			}
+			if v.Schema.TypeName == "stderr" {
+				if stderr == "" {
+					stdout = "__cwl_stderr"
+				}
+				for i := range args {
+					if args[i].Id == outputs[k].Id {
+						args[i].File.Glob = stderr
+					}
+				}
+			}
+		}
+		inputs := map[string]Schema{}
+		for k, v := range self.Inputs {
+			inputs[k] = v.Schema
+		}
+
 		return Job{JobType: COMMAND,
 			Cmd:          args,
-			Stderr:       self.Stderr,
-			Stdout:       self.Stdout,
-			Stdin:        self.Stdin,
+			Stderr:       stderr,
+			Stdout:       stdout,
+			Stdin:        stdin,
 			InputData:    i[RESULTS_FIELD].(JSONDict),
 			SuccessCodes: self.SuccessCodes,
+			Outputs:      outputs,
+			Inputs:       inputs,
 		}, nil
 	}
 }
