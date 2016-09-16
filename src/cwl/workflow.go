@@ -60,6 +60,7 @@ func (self Workflow) GetIDs() []string {
 }
 
 func (self Workflow) GetResults(state GraphState) JSONDict {
+	log.Printf("Workflow Results: %#v", state)
 	out := JSONDict{}
 	for k, v := range self.Outputs {
 		log.Printf("Workflow Output: %#v", v)

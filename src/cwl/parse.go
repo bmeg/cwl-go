@@ -402,6 +402,9 @@ func (self *CWLParser) NewWorkflowOutput(id string, x interface{}) (WorkflowOutp
 		if s, ok := base["source"]; ok {
 			out.OutputSource = s.(string)
 		}
+		if s, ok := base["outputSource"]; ok {
+			out.OutputSource = s.(string)
+		}
 	}
 	return out, nil
 }
