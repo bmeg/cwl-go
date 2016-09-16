@@ -88,8 +88,7 @@ type CommandLineTool struct {
 
 type WorkflowInput struct {
 	Schema
-	Source  string
-	Default *interface{}
+	Source string
 }
 
 type WorkflowOutput struct {
@@ -98,10 +97,11 @@ type WorkflowOutput struct {
 }
 
 type Step struct {
-	Id  string
-	In  map[string]StepInput
-	Out map[string]StepOutput
-	Doc CWLDoc
+	Id     string
+	In     map[string]StepInput
+	Out    map[string]StepOutput
+	Doc    CWLDoc
+	Parent *Workflow
 }
 
 type StepInput struct {

@@ -3,6 +3,7 @@ package cwl
 import (
 	"fmt"
 	"log"
+	"strings"
 )
 
 func (self Workflow) NewGraphState(inputs JSONDict) GraphState {
@@ -67,6 +68,18 @@ func (self Workflow) GetResults(state GraphState) JSONDict {
 	return out
 }
 
+func (self Workflow) GetDefault(name string) (*interface{}, bool) {
+	if strings.HasPrefix(name, "#") {
+		name = name[:1]
+	}
+	if v, ok := self.Inputs[name]; ok {
+		if v.Default != nil {
+			return v.Default, true
+		}
+	}
+	return nil, false
+}
+
 func (self Step) Ready(state GraphState) bool {
 	if state.HasResults(self.Id) {
 		return false
@@ -74,8 +87,12 @@ func (self Step) Ready(state GraphState) bool {
 	ready := true
 	for _, v := range self.In {
 		if _, ok := state.GetData(v.Source); !ok {
-			ready = false
-			log.Printf("Step %s input %s not found in %#v", self.Id, v.Source, state)
+			if _, ok := self.Parent.GetDefault(v.Source); !ok {
+				ready = false
+				log.Printf("Step %s input %s not found in %#v", self.Id, v.Source, state)
+			} else {
+				log.Printf("Step %s input %s has default", self.Id, v.Source)
+			}
 		} else {
 			log.Printf("Step %s found input %s in %#v", self.Id, v.Source, state)
 		}
@@ -88,7 +105,12 @@ func (self Step) BuildStepInput(state GraphState) GraphState {
 	out[INPUT_FIELD] = JobState{}
 	inputs := JSONDict{}
 	for k, v := range self.In {
-		inputs[k], _ = state.GetData(v.Source)
+		if i, ok := state.GetData(v.Source); ok {
+			inputs[k] = i
+		} else {
+			i_default, _ := self.Parent.GetDefault(v.Source)
+			inputs[k] = *i_default
+		}
 	}
 	out[INPUT_FIELD][RESULTS_FIELD] = inputs
 	log.Printf("Input Built: %#v from %#v", out, self.In)

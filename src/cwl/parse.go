@@ -152,6 +152,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 			for k, v := range base_map {
 				n, err := self.NewStep(k.(string), v)
 				if err == nil {
+					n.Parent = &out
 					out.Steps[n.Id] = n
 				} else {
 					return out, fmt.Errorf("Workflow Step error: %s", err)
@@ -161,6 +162,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 			for _, x := range base_array {
 				n, err := self.NewStep("", x)
 				if err == nil {
+					n.Parent = &out
 					out.Steps[n.Id] = n
 				} else {
 					return out, fmt.Errorf("Workflow Step error: %s", err)

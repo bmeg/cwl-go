@@ -60,7 +60,7 @@ func main() {
 	}
 	runner := cwl_engine.NewLocalRunner(config)
 	expression_runner := cwl_engine.NewExpressionRunner(config)
-
+	log.Printf("Starting run")
 	graphState := cwl_doc.NewGraphState(inputs)
 	for !cwl_doc.Done(graphState) {
 		readyCount := 0
