@@ -73,7 +73,7 @@ func (self CommandLineTool) GenerateJob(step string, graphState GraphState) (Job
 			}
 			if v.Schema.TypeName == "stderr" {
 				if stderr == "" {
-					stdout = "__cwl_stderr"
+					stderr = "__cwl_stderr"
 				}
 				for i := range args {
 					if args[i].Id == outputs[k].Id {
