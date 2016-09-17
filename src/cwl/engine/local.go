@@ -105,8 +105,9 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 	for _, o := range job.GetFiles() {
 		if o.Output {
 			if o.Glob != "" {
-				log.Printf("Output %s", filepath.Join(workdir, o.Glob))
-				g, _ := filepath.Glob(filepath.Join(workdir, o.Glob))
+				glob, _ := js_eval.EvaluateExpressionString(o.Glob, nil)
+				log.Printf("Output File Glob: %s", filepath.Join(workdir, glob))
+				g, _ := filepath.Glob(filepath.Join(workdir, glob))
 				for _, p := range g {
 					log.Printf("Found %s %s", o.Id, p)
 					hasher := sha1.New()
