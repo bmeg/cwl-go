@@ -29,6 +29,11 @@ func MapInputs(inputs cwl.JSONDict, mapper PathMapper) cwl.JSONDict {
 					x["path"] = mapper.LocationToPath(base["location"].(string))
 					out[k] = x
 				}
+				if classBase == "Directory" {
+					x := cwl.JSONDict{"class": "Directory"}
+					x["path"] = mapper.LocationToPath(base["location"].(string))
+					out[k] = x
+				}
 			}
 		}
 	}

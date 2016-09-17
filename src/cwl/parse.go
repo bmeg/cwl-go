@@ -9,6 +9,7 @@ import (
 	"log"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
 func InputParse(path string) (JSONDict, error) {
@@ -41,6 +42,18 @@ func AdjustInputs(input interface{}, basePath string) interface{} {
 						out[k] = v
 					}
 				}
+			} else if class == "Directory" {
+				for k, v := range base {
+					if k == "path" {
+						out["path"] = filepath.Join(basePath, v.(string))
+					} else if k == "location" {
+						out["location"] = filepath.Join(basePath, v.(string))
+					} else {
+						out[k] = v
+					}
+				}
+			} else {
+				log.Printf("Unknown class type: %s", class)
 			}
 		} else {
 			for k, v := range base {
@@ -66,41 +79,123 @@ func (self *JSONDict) Write(o io.Writer) {
 	o.Write(jout)
 }
 
-func Parse(cwl_path string) (CWLDoc, error) {
+func Parse(cwl_path string) (CWLGraph, error) {
 	source, err := ioutil.ReadFile(cwl_path)
 	if err != nil {
-		panic(err)
+		return CWLGraph{}, fmt.Errorf("Unable to parse file: %s", err)
 	}
-	doc := make(CWLDocData)
+	doc := make(map[interface{}]interface{})
 	err = yaml.Unmarshal(source, &doc)
 	x, _ := filepath.Abs(cwl_path)
-	base_path := filepath.Dir(x)
-	parser := CWLParser{BasePath: base_path, Schemas: make(map[string]Schema)}
-	if doc["class"].(string) == "Workflow" {
-		return parser.NewWorkflow(doc)
-	} else if doc["class"].(string) == "CommandLineTool" {
-		return parser.NewCommandLineTool(doc)
-	} else if doc["class"].(string) == "ExpressionTool" {
-		return parser.NewExpressionTool(doc)
+	parser := CWLParser{Path: x, Schemas: make(map[string]Schema), Elements: make(map[string]CWLDoc)}
+	if base, ok := doc["$graph"]; ok {
+		return parser.NewGraph(base)
+	} else if _, ok := doc["class"]; ok {
+		return parser.NewClass(doc)
 	}
-	return nil, fmt.Errorf("Unkown class type")
+	return CWLGraph{}, fmt.Errorf("Unable to parse file")
 }
 
 type CWLParser struct {
-	BasePath string
+	Path     string
 	Schemas  map[string]Schema
+	Elements map[string]CWLDoc
 }
 
 func (self *CWLParser) AddSchema(schema Schema) {
 	self.Schemas[schema.Name] = schema
 }
 
-func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
+func (self *CWLParser) GetElement(path string) (CWLDoc, error) {
+	if i, ok := self.Elements[path]; ok {
+		return i, nil
+	} else {
+		if strings.HasPrefix(path, "#") {
+			log.Printf("Need to parse another part of the graph")
+			source, err := ioutil.ReadFile(self.Path)
+			if err != nil {
+				return nil, fmt.Errorf("Unable to parse file: %s", err)
+			}
+			doc := make(map[interface{}]interface{})
+			yaml.Unmarshal(source, &doc)
+			parser := CWLParser{Path: self.Path, Schemas: make(map[string]Schema), Elements: make(map[string]CWLDoc)}
+			if _, ok := doc["$graph"]; ok {
+				p := path[1:]
+				if base, ok := doc["$graph"].([]interface{}); ok {
+					for _, i := range base {
+						if bmap, ok := i.(map[interface{}]interface{}); ok {
+							if bmap["id"] == p {
+								log.Printf("Found it")
+								c, err := parser.NewClass(bmap)
+								if err != nil {
+									return nil, err
+								}
+								d := c.Elements[c.Main]
+								self.Elements[path] = d
+								return d, nil
+							}
+						}
+					}
+				}
+			} else {
+				return nil, fmt.Errorf("Not a cwl graph file")
+			}
+		} else {
+			script := filepath.Join(filepath.Dir(self.Path), path)
+			cDoc, err := Parse(script)
+			if err != nil {
+				return nil, fmt.Errorf("Unable to parse script %s", script)
+			}
+			for k, v := range cDoc.Elements {
+				self.Elements[k] = v
+			}
+		}
+	}
+	return nil, fmt.Errorf("Unable to parse script")
+}
+
+func (self *CWLParser) NewClass(doc map[interface{}]interface{}) (CWLGraph, error) {
+	if doc["class"].(string) == "Workflow" {
+		return self.NewWorkflow(doc)
+	} else if doc["class"].(string) == "CommandLineTool" {
+		return self.NewCommandLineTool(doc)
+	} else if doc["class"].(string) == "ExpressionTool" {
+		return self.NewExpressionTool(doc)
+	}
+	return CWLGraph{}, fmt.Errorf("Unknown class type")
+}
+
+func (self *CWLParser) NewGraph(graph interface{}) (CWLGraph, error) {
+	docs := CWLGraph{Elements: map[string]CWLDoc{}}
+	if base, ok := graph.([]interface{}); ok {
+		for _, i := range base {
+			parser := CWLParser{Path: self.Path, Schemas: make(map[string]Schema), Elements: make(map[string]CWLDoc)}
+			if classBase, ok := i.(map[interface{}]interface{}); ok {
+				cDoc, err := parser.NewClass(classBase)
+				if err != nil {
+					return docs, err
+				}
+				for k, v := range cDoc.Elements {
+					docs.Elements[k] = v
+				}
+				log.Printf("Parsing Graph %#v", i)
+			}
+		}
+	}
+	return docs, nil
+}
+
+func (self *CWLParser) NewWorkflow(doc map[interface{}]interface{}) (CWLGraph, error) {
 	log.Printf("Workflow: %v", doc)
 	out := Workflow{}
+	if _, ok := doc["id"]; ok {
+		out.Id = doc["id"].(string)
+	} else {
+		out.Id = "#_main"
+	}
+
 	out.Inputs = make(map[string]WorkflowInput)
 	out.Outputs = make(map[string]WorkflowOutput)
-
 	out.Steps = make(map[string]Step)
 
 	if base, ok := doc["inputs"]; ok {
@@ -110,7 +205,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Inputs[n.Id] = n
 				} else {
-					return out, fmt.Errorf("Workflow Input error: %s", err)
+					return CWLGraph{}, fmt.Errorf("Workflow Input error: %s", err)
 				}
 			}
 		} else if base_array, ok := base.([]interface{}); ok {
@@ -119,7 +214,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Inputs[n.Id] = n
 				} else {
-					return out, fmt.Errorf("Workflow Input error: %s", err)
+					return CWLGraph{}, fmt.Errorf("Workflow Input error: %s", err)
 				}
 			}
 		}
@@ -132,7 +227,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Outputs[n.Id] = n
 				} else {
-					return out, fmt.Errorf("Workflow Output error: %s", err)
+					return CWLGraph{}, fmt.Errorf("Workflow Output error: %s", err)
 				}
 			}
 		} else if base_array, ok := base.([]interface{}); ok {
@@ -141,7 +236,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Outputs[n.Id] = n
 				} else {
-					return out, fmt.Errorf("Workflow Output error: %s", err)
+					return CWLGraph{}, fmt.Errorf("Workflow Output error: %s", err)
 				}
 			}
 		}
@@ -155,7 +250,7 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 					n.Parent = &out
 					out.Steps[n.Id] = n
 				} else {
-					return out, fmt.Errorf("Workflow Step error: %s", err)
+					return CWLGraph{}, fmt.Errorf("Workflow Step error: %s", err)
 				}
 			}
 		} else if base_array, ok := base.([]interface{}); ok {
@@ -165,15 +260,15 @@ func (self *CWLParser) NewWorkflow(doc CWLDocData) (CWLDoc, error) {
 					n.Parent = &out
 					out.Steps[n.Id] = n
 				} else {
-					return out, fmt.Errorf("Workflow Step error: %s", err)
+					return CWLGraph{}, fmt.Errorf("Workflow Step error: %s", err)
 				}
 			}
 		}
 	}
-	return out, nil
+	return CWLGraph{Elements: map[string]CWLDoc{out.Id: out}, Main: out.Id}, nil
 }
 
-func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
+func (self *CWLParser) NewCommandLineTool(doc map[interface{}]interface{}) (CWLGraph, error) {
 	log.Printf("CommandLineTool: %v", doc)
 	out := CommandLineTool{}
 	out.Inputs = make(map[string]CommandInput)
@@ -182,14 +277,14 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 	if _, ok := doc["id"]; ok {
 		out.Id = doc["id"].(string)
 	} else {
-		out.Id = ""
+		out.Id = "#_main"
 	}
 
 	/* Requirements */
 	if base, ok := doc["requirements"]; ok {
 		r, err := self.NewRequirements(base)
 		if err != nil {
-			return CommandLineTool{}, err
+			return CWLGraph{}, err
 		}
 		log.Printf("Requirements: %#v", r)
 		out.Requirements = r
@@ -215,7 +310,7 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 			if err == nil {
 				out.Arguments = append(out.Arguments, n)
 			} else {
-				return out, fmt.Errorf("Error Parsing Arguments: %s", err)
+				return CWLGraph{}, fmt.Errorf("Error Parsing Arguments: %s", err)
 			}
 		}
 	}
@@ -236,7 +331,7 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 				if err == nil {
 					out.Inputs[n.Id] = n
 				} else {
-					return out, fmt.Errorf("Command line Input error: %s", err)
+					return CWLGraph{}, fmt.Errorf("Command line Input error: %s", err)
 				}
 			}
 		} else {
@@ -252,7 +347,7 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 			for k, v := range base_map {
 				n, err := self.NewCommandOutput(k.(string), v)
 				if err != nil {
-					return out, fmt.Errorf("Output map parsing errors: %s %s %s %#v", out.Id, k, err, v)
+					return CWLGraph{}, fmt.Errorf("Output map parsing errors: %s %s %s %#v", out.Id, k, err, v)
 				}
 				out.Outputs[n.Id] = n
 			}
@@ -261,7 +356,7 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 			for _, x := range base_array {
 				n, err := self.NewCommandOutput("", x)
 				if err != nil {
-					return out, fmt.Errorf("Output array parsing errors: %s %s %#v", n.Id, err, x)
+					return CWLGraph{}, fmt.Errorf("Output array parsing errors: %s %s %#v", n.Id, err, x)
 				}
 				out.Outputs[n.Id] = n
 			}
@@ -292,10 +387,10 @@ func (self *CWLParser) NewCommandLineTool(doc CWLDocData) (CWLDoc, error) {
 	}
 
 	log.Printf("Parse CommandLineTool: %v", out)
-	return out, nil
+	return CWLGraph{Elements: map[string]CWLDoc{out.Id: out}, Main: out.Id}, nil
 }
 
-func (self *CWLParser) NewExpressionTool(doc CWLDocData) (ExpressionTool, error) {
+func (self *CWLParser) NewExpressionTool(doc map[interface{}]interface{}) (CWLGraph, error) {
 	log.Printf("ExpressionTool: %v", doc)
 	out := ExpressionTool{}
 	out.Inputs = make(map[string]ExpressionInput)
@@ -304,14 +399,14 @@ func (self *CWLParser) NewExpressionTool(doc CWLDocData) (ExpressionTool, error)
 	if _, ok := doc["id"]; ok {
 		out.Id = doc["id"].(string)
 	} else {
-		out.Id = ""
+		out.Id = "#_main"
 	}
 
 	/* Requirements */
 	if base, ok := doc["requirements"]; ok {
 		r, err := self.NewRequirements(base)
 		if err != nil {
-			return ExpressionTool{}, err
+			return CWLGraph{}, err
 		}
 		log.Printf("Requirements: %#v", r)
 		out.Requirements = r
@@ -337,7 +432,7 @@ func (self *CWLParser) NewExpressionTool(doc CWLDocData) (ExpressionTool, error)
 				if err == nil {
 					out.Inputs[n.Id] = n
 				} else {
-					return out, fmt.Errorf("Command line Input error: %s", err)
+					return CWLGraph{}, fmt.Errorf("Command line Input error: %s", err)
 				}
 			}
 		} else {
@@ -353,7 +448,7 @@ func (self *CWLParser) NewExpressionTool(doc CWLDocData) (ExpressionTool, error)
 			for k, v := range base_map {
 				n, err := self.NewExpressionOutput(k.(string), v)
 				if err != nil {
-					return out, fmt.Errorf("Output map parsing errors: %s %s %s %#v", out.Id, k, err, v)
+					return CWLGraph{}, fmt.Errorf("Output map parsing errors: %s %s %s %#v", out.Id, k, err, v)
 				}
 				out.Outputs[n.Id] = n
 			}
@@ -362,7 +457,7 @@ func (self *CWLParser) NewExpressionTool(doc CWLDocData) (ExpressionTool, error)
 			for _, x := range base_array {
 				n, err := self.NewExpressionOutput("", x)
 				if err != nil {
-					return out, fmt.Errorf("Output array parsing errors: %s %s %#v", n.Id, err, x)
+					return CWLGraph{}, fmt.Errorf("Output array parsing errors: %s %s %#v", n.Id, err, x)
 				}
 				out.Outputs[n.Id] = n
 			}
@@ -374,7 +469,7 @@ func (self *CWLParser) NewExpressionTool(doc CWLDocData) (ExpressionTool, error)
 	}
 
 	log.Printf("Parse ExpressionTool: %v", out)
-	return out, nil
+	return CWLGraph{Elements: map[string]CWLDoc{out.Id: out}, Main: out.Id}, nil
 }
 
 func (self *CWLParser) NewWorkflowInput(id string, x interface{}) (WorkflowInput, error) {
@@ -455,13 +550,12 @@ func (self *CWLParser) NewStep(id string, x interface{}) (Step, error) {
 
 		if bRun, ok := base["run"]; ok {
 			r := bRun.(string)
-			script := filepath.Join(self.BasePath, r)
-			log.Printf("RunScript: %s", script)
-			cDoc, err := Parse(script)
+			log.Printf("StepRun: %s", r)
+			doc, err := self.GetElement(r)
 			if err != nil {
-				return sout, fmt.Errorf("Unable to parse script %s", script)
+				return sout, fmt.Errorf("Unable to parse step: %s", err)
 			}
-			sout.Doc = cDoc
+			sout.Doc = doc
 		}
 
 	} else {
@@ -608,6 +702,8 @@ func (self *CWLParser) NewCommandOutput(id string, x interface{}) (CommandOutput
 		} else {
 			log.Printf("No output binding: %s %s", out.Id, base)
 		}
+	} else if base, ok := x.(string); ok {
+		log.Printf("output schema string: %s", base)
 	} else {
 		return out, fmt.Errorf("Unable to parse CommandOutput: %v", x)
 	}
@@ -641,16 +737,17 @@ func (self *CWLParser) NewExpressionOutput(id string, x interface{}) (Expression
 }
 
 var SCHEMA_TYPES = map[string]bool{
-	"boolean": true,
-	"int":     true,
-	"array":   true,
-	"record":  true,
-	"File":    true,
-	"null":    true,
-	"string":  true,
-	"stdout":  true,
-	"stderr":  true,
-	"Any":     true,
+	"boolean":   true,
+	"int":       true,
+	"array":     true,
+	"record":    true,
+	"File":      true,
+	"Directory": true,
+	"null":      true,
+	"string":    true,
+	"stdout":    true,
+	"stderr":    true,
+	"Any":       true,
 }
 
 func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
@@ -723,10 +820,10 @@ func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
 			if out.TypeName == "File" {
 				if base, ok := def.(map[interface{}]interface{}); ok {
 					if s, ok := base["path"]; ok {
-						base["path"] = path.Join(self.BasePath, s.(string))
+						base["path"] = path.Join(filepath.Dir(self.Path), s.(string))
 					}
 					if s, ok := base["location"]; ok {
-						base["location"] = path.Join(self.BasePath, s.(string))
+						base["location"] = path.Join(filepath.Dir(self.Path), s.(string))
 					}
 				}
 			}
@@ -776,7 +873,7 @@ func (self *CWLParser) NewRequirements(x interface{}) ([]Requirement, error) {
 	out := []Requirement{}
 	if base, ok := x.([]interface{}); ok {
 		for _, i := range base {
-			if base, ok := x.(map[interface{}]interface{}); ok {
+			if base, ok := i.(map[interface{}]interface{}); ok {
 				if id, ok := base["class"]; ok {
 					id_string := id.(string)
 					o, err := self.NewRequirement(id_string, i)
@@ -802,6 +899,7 @@ func (self *CWLParser) NewRequirements(x interface{}) ([]Requirement, error) {
 }
 
 func (self *CWLParser) NewRequirement(id_string string, conf interface{}) (Requirement, error) {
+	log.Printf("Requirement: %s", id_string)
 	switch {
 	case id_string == "SchemaDefRequirement":
 		schemaRequirement, err := self.NewSchemaDefRequirement(conf)
@@ -817,6 +915,7 @@ func (self *CWLParser) NewRequirement(id_string string, conf interface{}) (Requi
 	case id_string == "InitialWorkDirRequirement":
 		return self.NewInitialWorkDirRequirement(conf)
 	default:
+		log.Printf("Unsupported Requirement %s", id_string)
 		e := UnsupportedRequirement{Message: fmt.Sprintf("Unknown requirement: %s", id_string)}
 		return nil, e
 	}

@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func main() {
@@ -38,7 +39,14 @@ func main() {
 		Quiet:           *quiet_flag,
 	}
 
-	cwl_doc, err := cwl.Parse(flag.Arg(0))
+	cwl_path := flag.Arg(0)
+	element_id := ""
+	if strings.Contains(cwl_path, "#") {
+		tmp := strings.Split(cwl_path, "#")
+		cwl_path = tmp[0]
+		element_id = tmp[1]
+	}
+	cwl_docs, err := cwl.Parse(cwl_path)
 	if err != nil {
 		os.Stderr.WriteString(fmt.Sprintf("Unable to parse CWL document: %s\n", err))
 		if _, ok := err.(cwl.UnsupportedRequirement); ok {
@@ -46,7 +54,7 @@ func main() {
 		}
 		os.Exit(1)
 	}
-	log.Printf("CWLDoc: %#v", cwl_doc)
+	log.Printf("CWLDoc: %#v", cwl_docs)
 	var inputs cwl.JSONDict
 	if len(flag.Args()) == 1 {
 		inputs = cwl.JSONDict{}
@@ -60,6 +68,16 @@ func main() {
 	}
 	runner := cwl_engine.NewLocalRunner(config)
 	expression_runner := cwl_engine.NewExpressionRunner(config)
+
+	if cwl_docs.Main == "" {
+		if element_id == "" {
+			os.Stderr.WriteString(fmt.Sprintf("Need to define element ID\n"))
+			os.Exit(1)
+		}
+		cwl_docs.Main = element_id
+	}
+
+	cwl_doc := cwl_docs.Elements[cwl_docs.Main]
 	log.Printf("Starting run")
 	graphState := cwl_doc.NewGraphState(inputs)
 	for !cwl_doc.Done(graphState) {

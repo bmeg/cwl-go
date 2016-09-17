@@ -201,6 +201,22 @@ func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
 		} else {
 			log.Printf("File input not formatted correctly: %#v", value)
 		}
+	} else if typeName == "Directory" {
+		if base, ok := value.(map[interface{}]interface{}); ok {
+			if class, ok := base["class"]; ok {
+				if class.(string) == "Directory" {
+					loc := base["location"].(string)
+					//BUG: this way of packing up a file name doesn't make sense and breaks the path mapper
+					out_args = JobArgument{Id: self.Id, Position: self.Position, Value: "$(self.location)", File: &JobFile{Location: loc, Dir: true}}
+				} else {
+					log.Printf("Unknown class %s", class)
+				}
+			} else {
+				log.Printf("Input map has no class: %#v", base)
+			}
+		} else {
+			log.Printf("Directory input not formatted correctly: %#v", value)
+		}
 	} else if typeName == "int" {
 		out_args = JobArgument{Id: self.Id, Value: fmt.Sprintf("%d", value.(int))}
 	} else if typeName == "boolean" {

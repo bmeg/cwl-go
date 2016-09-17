@@ -56,6 +56,11 @@ type JobFile struct {
 	Glob     string
 }
 
+type CWLGraph struct {
+	Elements map[string]CWLDoc
+	Main     string
+}
+
 type CWLDoc interface {
 	GetIDs() []string
 	NewGraphState(inputs JSONDict) GraphState
