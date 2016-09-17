@@ -1,15 +1,16 @@
-language: go
-go:
-  - tip
+language: python
+python:
+  - "2.7"
 os:
   - linux
 before_install:
   - sudo apt-get update
-  - sudo apt-get install python-virtualenv
+  - sudo apt-get install -y golang
   - pip install --upgrade pip setuptools
 install:
   - make depends
   - make 
-script: make test
+  - git clone https://github.com/common-workflow-language/common-workflow-language.git
+script: cd common-workflow-language && ./run_test.sh RUNNER=../bin/cwlgo-tool common-workflow-language/v1.0/
 notifications:
   email: false
