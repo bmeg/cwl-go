@@ -6,7 +6,7 @@ os:
 before_install:
   - sudo apt-get update
   - sudo apt-get install -y golang
-  - pip install --upgrade pip setuptools
+  - pip install cwltool
 install:
   - make depends
   - make 
