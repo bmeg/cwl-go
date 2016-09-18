@@ -43,6 +43,7 @@ type JobArgument struct {
 	RawValue interface{}
 	Join     string
 	Prefix   string
+	Bound    bool
 	File     *JobFile
 	Children []JobArgument
 }
@@ -128,6 +129,7 @@ type Schema struct {
 	Prefix        string
 	Position      int
 	ItemSeparator string
+	Bound         bool
 	Default       *interface{}
 }
 
@@ -177,9 +179,7 @@ type InitialWorkDirRequirement struct {
 }
 
 type Argument struct {
-	Value         *string
-	ValueFrom     *string
-	Position      int
-	Prefix        *string
-	ItemSeparator *string
+	Schema
+	Value     *string
+	ValueFrom *string
 }

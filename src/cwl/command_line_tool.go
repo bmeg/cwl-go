@@ -123,7 +123,7 @@ func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]JobArgument, error) {
 	args := make(jobArgArray, 0, len(self.Arguments)+len(self.Inputs))
 
 	for _, x := range self.BaseCommand {
-		args = append(args, JobArgument{Value: x, Position: -10000})
+		args = append(args, JobArgument{Value: x, Position: -10000, Bound: true})
 	}
 
 	//Arguments
@@ -170,7 +170,13 @@ func (self *Schema) IsOptional() bool {
 }
 
 func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
-	out_args := JobArgument{Id: self.Id, Prefix: self.Prefix, Join: self.ItemSeparator}
+	out_args := JobArgument{
+		Id:       self.Id,
+		Join:     self.ItemSeparator,
+		Position: self.Position,
+		Bound:    self.Bound,
+		RawValue: value,
+	}
 
 	typeName := self.TypeName
 
@@ -190,8 +196,8 @@ func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
 			if class, ok := base["class"]; ok {
 				if class.(string) == "File" {
 					loc := base["location"].(string)
-					//BUG: this way of packing up a file name doesn't make sense and breaks the path mapper
-					out_args = JobArgument{Id: self.Id, Position: self.Position, Value: "$(self.location)", File: &JobFile{Location: loc}}
+					out_args.File = &JobFile{Location: loc}
+					out_args.Value = "$(self.location)"
 				} else {
 					log.Printf("Unknown class %s", class)
 				}
@@ -206,8 +212,8 @@ func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
 			if class, ok := base["class"]; ok {
 				if class.(string) == "Directory" {
 					loc := base["location"].(string)
-					//BUG: this way of packing up a file name doesn't make sense and breaks the path mapper
-					out_args = JobArgument{Id: self.Id, Position: self.Position, Value: "$(self.location)", File: &JobFile{Location: loc, Dir: true}}
+					out_args.File = &JobFile{Location: loc, Dir: true}
+					out_args.Value = "$(self.location)"
 				} else {
 					log.Printf("Unknown class %s", class)
 				}
@@ -218,19 +224,24 @@ func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
 			log.Printf("Directory input not formatted correctly: %#v", value)
 		}
 	} else if typeName == "int" {
-		out_args = JobArgument{Id: self.Id, Value: fmt.Sprintf("%d", value.(int))}
+		out_args.Value = fmt.Sprintf("%d", value.(int))
 	} else if typeName == "boolean" {
 		if value.(bool) {
 			out_args.Prefix = self.Prefix
+		} else {
+			out_args.Prefix = ""
 		}
 	} else if typeName == "Any" {
-		out_args = JobArgument{Id: self.Id, Value: fmt.Sprintf("%s", value), RawValue: value}
+		out_args.Value = fmt.Sprintf("%s", value)
 	} else if typeName == "array_holder" {
 		o, err := self.Types[0].SchemaEvaluate(value)
 		if err != nil {
 			return JobArgument{}, fmt.Errorf("Bad array '%s' (%#v): %s", typeName, *self, err)
 		}
 		out_args = o
+		out_args.Join = self.ItemSeparator
+		out_args.Position = self.Position
+		out_args.Bound = self.Bound
 	} else if typeName == "array" {
 		if base, ok := value.([]interface{}); ok {
 			log.Printf("Evalutate ArrayItem Schema: %#v", self)
@@ -248,14 +259,9 @@ func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
 	} else {
 		return JobArgument{}, fmt.Errorf("Unknown Type '%s' (%#v)", typeName, *self)
 	}
-
-	if self.ItemSeparator != "" {
-		out_args.Join = self.ItemSeparator
-	}
 	if self.Prefix != "" && typeName != "array" && typeName != "boolean" {
 		out_args.Prefix = self.Prefix
 	}
-	out_args.Position = self.Position
 	return out_args, nil
 }
 
@@ -300,11 +306,11 @@ func (self *CommandOutput) Evaluate(inputs JSONDict) (JobArgument, error) {
 
 func (self *Argument) Evaluate(inputs JSONDict) (JobArgument, error) {
 	if self.Value != nil {
-		return JobArgument{Value: *self.Value}, nil
+		return JobArgument{Value: *self.Value, Bound: self.Bound}, nil
 	} else if self.ValueFrom != nil {
-		out := JobArgument{Value: *self.ValueFrom}
-		if self.Prefix != nil {
-			out.Prefix = *self.Prefix
+		out := JobArgument{Value: *self.ValueFrom, Bound: self.Bound}
+		if self.Prefix != "" {
+			out.Prefix = self.Prefix
 		}
 		out.Position = self.Position
 		return out, nil

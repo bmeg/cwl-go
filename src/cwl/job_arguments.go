@@ -23,7 +23,15 @@ func (self *JobArgument) GetFiles() []JobFile {
 	return out
 }
 
-func (self *JobArgument) EvaluateStrings(evaluator JSEvaluator) ([]string, error) {
+func (self *JobArgument) GetArgs(evaluator JSEvaluator) ([]string, error) {
+	cmd, bound, err := self.EvaluateStrings(evaluator)
+	if err != nil || !bound {
+		return []string{}, err
+	}
+	return cmd, nil
+}
+
+func (self *JobArgument) EvaluateStrings(evaluator JSEvaluator) ([]string, bool, error) {
 	out := []string{}
 
 	if self.Value != "" {
@@ -36,15 +44,16 @@ func (self *JobArgument) EvaluateStrings(evaluator JSEvaluator) ([]string, error
 			e, err = evaluator.EvaluateExpressionString(self.Value, nil)
 		}
 		if err != nil {
-			return []string{}, err
+			return []string{}, false, err
 		}
 		out = append(out, e)
+	} else if self.Bound && self.File != nil {
+		out = append(out, self.File.Location)
 	}
-
 	for _, x := range self.Children {
-		e, err := x.EvaluateStrings(evaluator)
+		e, _, err := x.EvaluateStrings(evaluator)
 		if err != nil {
-			return []string{}, err
+			return []string{}, false, err
 		}
 		out = append(out, e...)
 	}
@@ -57,7 +66,7 @@ func (self *JobArgument) EvaluateStrings(evaluator JSEvaluator) ([]string, error
 		out = append([]string{self.Prefix}, out...)
 	}
 
-	return out, nil
+	return out, self.Bound, nil
 }
 
 func (self *JobArgument) EvaluateObject(evaluator JSEvaluator) (interface{}, error) {

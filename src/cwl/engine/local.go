@@ -43,7 +43,7 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 	js_eval := cwl.JSEvaluator{Inputs: inputs}
 
 	for i := range job.Cmd {
-		s, err := job.Cmd[i].EvaluateStrings(js_eval)
+		s, err := job.Cmd[i].GetArgs(js_eval)
 		if err != nil {
 			return cwl.JSONDict{}, fmt.Errorf("Expression Eval failed: %s", err)
 		}

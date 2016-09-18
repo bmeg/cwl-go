@@ -801,6 +801,7 @@ func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
 		}
 
 		if binding, ok := base["inputBinding"]; ok {
+			out.Bound = true
 			if pos, ok := binding.(map[interface{}]interface{})["position"]; ok {
 				out.Position = pos.(int)
 			} else {
@@ -847,10 +848,10 @@ func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
 
 func (self *CWLParser) NewArgument(x interface{}) (Argument, error) {
 	if base, ok := x.(string); ok {
-		return Argument{Value: &base}, nil
+		return Argument{Value: &base, Schema: Schema{Bound: true}}, nil
 	}
 	if base, ok := x.(map[interface{}]interface{}); ok {
-		out := Argument{}
+		out := Argument{Schema: Schema{Bound: true}}
 		if x, ok := base["valueFrom"]; ok {
 			s := x.(string)
 			out.ValueFrom = &s
@@ -862,7 +863,7 @@ func (self *CWLParser) NewArgument(x interface{}) (Argument, error) {
 		}
 		if x, ok := base["prefix"]; ok {
 			x_s := x.(string)
-			out.Prefix = &x_s
+			out.Prefix = x_s
 		}
 		return out, nil
 	}

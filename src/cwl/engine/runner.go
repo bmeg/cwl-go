@@ -2,8 +2,8 @@ package cwl_engine
 
 import (
 	"cwl"
-	"strings"
 	"path/filepath"
+	"strings"
 )
 
 type Config struct {
@@ -21,7 +21,7 @@ type PathMapper interface {
 	LocationToPath(location string) string
 }
 
-func FileNameSplit(path string) (string,string) {
+func FileNameSplit(path string) (string, string) {
 	filename := filepath.Base(path)
 	if strings.HasPrefix(filename, ".") {
 		root, ext := FileNameSplit(filename[1:])
