@@ -144,11 +144,12 @@ func (self *CWLParser) GetElement(path string) (CWLDoc, error) {
 			script := filepath.Join(filepath.Dir(self.Path), path)
 			cDoc, err := Parse(script)
 			if err != nil {
-				return nil, fmt.Errorf("Unable to parse script %s", script)
+				return nil, fmt.Errorf("Unable to parse script '%s': %s", script, err)
 			}
 			for k, v := range cDoc.Elements {
 				self.Elements[k] = v
 			}
+			return cDoc.Elements[cDoc.Main], nil
 		}
 	}
 	return nil, fmt.Errorf("Unable to parse script")
@@ -553,7 +554,7 @@ func (self *CWLParser) NewStep(id string, x interface{}) (Step, error) {
 			log.Printf("StepRun: %s", r)
 			doc, err := self.GetElement(r)
 			if err != nil {
-				return sout, fmt.Errorf("Unable to parse step: %s", err)
+				return sout, fmt.Errorf("Unable to parse step %s: %s", sout.Id, err)
 			}
 			sout.Doc = doc
 		}
