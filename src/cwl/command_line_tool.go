@@ -87,12 +87,20 @@ func (self CommandLineTool) GenerateJob(step string, graphState GraphState) (Job
 			inputs[k] = v.Schema
 		}
 
+		dockerImage := ""
+		for _, i := range self.Requirements {
+			if a, ok := i.(DockerRequirement); ok {
+				dockerImage = a.DockerPull
+			}
+		}
+
 		return Job{JobType: COMMAND,
 			Cmd:          args,
 			Stderr:       stderr,
 			Stdout:       stdout,
 			Stdin:        stdin,
 			InputData:    i[RESULTS_FIELD].(JSONDict),
+			DockerImage:  dockerImage,
 			SuccessCodes: self.SuccessCodes,
 			Outputs:      outputs,
 			Inputs:       inputs,
@@ -156,7 +164,7 @@ func (self *CommandLineTool) Evaluate(inputs JSONDict) ([]JobArgument, error) {
 	}
 
 	sort.Stable(args)
-	log.Printf("Out: %v", args)
+	//log.Printf("Out: %v", args)
 	return args, nil
 }
 
@@ -196,8 +204,8 @@ func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
 			if class, ok := base["class"]; ok {
 				if class.(string) == "File" {
 					loc := base["location"].(string)
-					out_args.File = &JobFile{Location: loc}
-					out_args.Value = "$(self.location)"
+					out_args.File = &JobFile{Id: self.Id, Location: loc}
+					out_args.Value = "$(self.path)"
 				} else {
 					log.Printf("Unknown class %s", class)
 				}
@@ -212,8 +220,8 @@ func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
 			if class, ok := base["class"]; ok {
 				if class.(string) == "Directory" {
 					loc := base["location"].(string)
-					out_args.File = &JobFile{Location: loc, Dir: true}
-					out_args.Value = "$(self.location)"
+					out_args.File = &JobFile{Id: self.Id, Location: loc, Dir: true}
+					out_args.Value = "$(self.path)"
 				} else {
 					log.Printf("Unknown class %s", class)
 				}
@@ -251,7 +259,7 @@ func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
 					return JobArgument{}, err
 				}
 				if self.Prefix != "" {
-					out_args.Children = append(out_args.Children, JobArgument{Value: self.Prefix})
+					out_args.Children = append(out_args.Children, JobArgument{Id: self.Id, Value: self.Prefix})
 				}
 				out_args.Children = append(out_args.Children, e)
 			}

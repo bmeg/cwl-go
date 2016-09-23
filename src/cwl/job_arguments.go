@@ -1,6 +1,7 @@
 package cwl
 
 import (
+	"log"
 	"strings"
 )
 
@@ -23,22 +24,23 @@ func (self *JobArgument) GetFiles() []JobFile {
 	return out
 }
 
-func (self *JobArgument) GetArgs(evaluator JSEvaluator) ([]string, error) {
-	cmd, bound, err := self.EvaluateStrings(evaluator)
+func (self *JobArgument) GetArgs(evaluator JSEvaluator, pathMapper func(interface{}) interface{}) ([]string, error) {
+	cmd, bound, err := self.EvaluateStrings(evaluator, pathMapper)
 	if err != nil || !bound {
 		return []string{}, err
 	}
 	return cmd, nil
 }
 
-func (self *JobArgument) EvaluateStrings(evaluator JSEvaluator) ([]string, bool, error) {
+func (self *JobArgument) EvaluateStrings(evaluator JSEvaluator, pathMapper func(interface{}) interface{}) ([]string, bool, error) {
 	out := []string{}
 
 	if self.Value != "" {
 		var e string
 		var err error
 		if self.File != nil {
-			f := self.File.ToJSONDict()
+			f := pathMapper(self.File.ToJSONDict()).(JSONDict)
+			log.Printf("self = %s", f)
 			e, err = evaluator.EvaluateExpressionString(self.Value, &f)
 		} else {
 			e, err = evaluator.EvaluateExpressionString(self.Value, nil)
@@ -51,7 +53,7 @@ func (self *JobArgument) EvaluateStrings(evaluator JSEvaluator) ([]string, bool,
 		out = append(out, self.File.Location)
 	}
 	for _, x := range self.Children {
-		e, _, err := x.EvaluateStrings(evaluator)
+		e, _, err := x.EvaluateStrings(evaluator, pathMapper)
 		if err != nil {
 			return []string{}, false, err
 		}

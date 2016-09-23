@@ -43,6 +43,42 @@ func (self JSONDict) Normalize() map[string]interface{} {
 	return mapNormalize(self).(map[string]interface{})
 }
 
+func getFilePaths(x interface{}) []string {
+	out := []string{}
+	if a, ok := x.(JSONDict); ok {
+		if c, ok := a["class"]; ok {
+			if c.(string) == "File" {
+				out = append(out, a["path"].(string))
+			}
+		} else {
+			for _, v := range a {
+				out = append(out, getFilePaths(v)...)
+			}
+		}
+	}
+	if a, ok := x.(map[interface{}]interface{}); ok {
+		if c, ok := a["class"]; ok {
+			if c.(string) == "File" {
+				out = append(out, a["path"].(string))
+			}
+		} else {
+			for _, v := range a {
+				out = append(out, getFilePaths(v)...)
+			}
+		}
+	}
+	if a, ok := x.([]interface{}); ok {
+		for _, i := range a {
+			out = append(out, getFilePaths(i)...)
+		}
+	}
+	return out
+}
+
+func (self JSONDict) GetFilePaths() []string {
+	return getFilePaths(self)
+}
+
 func (self GraphState) HasResults(stepId string) bool {
 	if _, ok := self[stepId]; ok {
 		if _, ok := self[stepId][RESULTS_FIELD]; ok {

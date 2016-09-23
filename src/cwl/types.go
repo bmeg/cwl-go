@@ -20,6 +20,7 @@ const (
 type Job struct {
 	JobType      int
 	Cmd          []JobArgument
+	DockerImage  string
 	Expression   string
 	Stdout       string
 	Stderr       string
@@ -172,6 +173,9 @@ type SchemaDefRequirement struct {
 	NewTypes []Schema
 }
 
+type DockerRequirement struct {
+	DockerPull string
+}
 type InlineJavascriptRequirement struct {
 }
 

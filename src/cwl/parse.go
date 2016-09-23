@@ -288,7 +288,17 @@ func (self *CWLParser) NewCommandLineTool(doc map[interface{}]interface{}) (CWLG
 			return CWLGraph{}, err
 		}
 		log.Printf("Requirements: %#v", r)
-		out.Requirements = r
+		out.Requirements = append(out.Requirements, r...)
+	}
+
+	/* Requirements */
+	if base, ok := doc["hints"]; ok {
+		r, err := self.NewHints(base)
+		if err != nil {
+			return CWLGraph{}, err
+		}
+		log.Printf("Hints: %#v", r)
+		out.Requirements = append(out.Requirements, r...)
 	}
 
 	/* BaseCommand */
@@ -900,6 +910,41 @@ func (self *CWLParser) NewRequirements(x interface{}) ([]Requirement, error) {
 	return out, nil
 }
 
+func (self *CWLParser) NewHints(x interface{}) ([]Requirement, error) {
+	out := []Requirement{}
+	if base, ok := x.([]interface{}); ok {
+		for _, i := range base {
+			if base, ok := i.(map[interface{}]interface{}); ok {
+				if id, ok := base["class"]; ok {
+					id_string := id.(string)
+					o, err := self.NewRequirement(id_string, i)
+					if err != nil {
+						if _, ok := err.(UnsupportedRequirement); !ok {
+							return out, err
+						}
+					} else {
+						out = append(out, o)
+					}
+				}
+			}
+		}
+	} else if base, ok := x.(map[interface{}]interface{}); ok {
+		for k, v := range base {
+			o, err := self.NewRequirement(k.(string), v)
+			if err != nil {
+				if _, ok := err.(UnsupportedRequirement); !ok {
+					return out, err
+				}
+			} else {
+				out = append(out, o)
+			}
+		}
+	} else {
+		return out, fmt.Errorf("Unable to parse requirements block")
+	}
+	return out, nil
+}
+
 func (self *CWLParser) NewRequirement(id_string string, conf interface{}) (Requirement, error) {
 	log.Printf("Requirement: %s", id_string)
 	switch {
@@ -916,6 +961,8 @@ func (self *CWLParser) NewRequirement(id_string string, conf interface{}) (Requi
 		return self.NewInlineJavascriptRequirement(conf)
 	case id_string == "InitialWorkDirRequirement":
 		return self.NewInitialWorkDirRequirement(conf)
+	case id_string == "DockerRequirement":
+		return self.NewDockerRequirement(conf)
 	default:
 		log.Printf("Unsupported Requirement %s", id_string)
 		e := UnsupportedRequirement{Message: fmt.Sprintf("Unknown requirement: %s", id_string)}
@@ -942,6 +989,17 @@ func (self *CWLParser) NewSchemaDefRequirement(conf interface{}) (SchemaDefRequi
 		}
 	}
 	return SchemaDefRequirement{NewTypes: newTypes}, nil
+}
+
+func (self *CWLParser) NewDockerRequirement(x interface{}) (DockerRequirement, error) {
+	if base, ok := x.(map[interface{}]interface{}); ok {
+		if pull, ok := base["dockerPull"]; ok {
+			return DockerRequirement{
+				DockerPull: pull.(string),
+			}, nil
+		}
+	}
+	return DockerRequirement{}, fmt.Errorf("DockerPull not found")
 }
 
 func (self *CWLParser) NewInlineJavascriptRequirement(x interface{}) (InlineJavascriptRequirement, error) {

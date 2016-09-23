@@ -1,68 +1,67 @@
 package cwl_engine
 
 import (
-	"crypto/sha1"
 	"cwl"
 	"fmt"
 	"gopkg.in/yaml.v2"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"syscall"
 )
 
-func NewLocalRunner(config Config) CWLRunner {
-	return LocalRunner{Config: config}
+func NewLocalRunner(config Config) (JobRunner, error) {
+	workdir, err := ioutil.TempDir(config.TmpdirPrefix, "cwlwork_")
+	if err != nil {
+		return nil, fmt.Errorf("Unable to create working dir")
+	}
+	return LocalRunner{Config: config, Workdir: workdir}, nil
 }
 
 type LocalRunner struct {
-	Config Config
+	Config  Config
+	Workdir string
 }
 
 func (self LocalRunner) LocationToPath(location string) string {
 	return location
 }
 
-func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
-	log.Printf("Command Files: %#v", job.GetFiles)
-	log.Printf("Command Inputs: %#v", job.InputData)
+func (self LocalRunner) GetWorkDirPath() string {
+	return self.Workdir
+}
 
-	inputs := MapInputs(job.InputData, self)
+func (self LocalRunner) Glob(pattern string) []string {
+	matches, _ := filepath.Glob(filepath.Join(self.Workdir, pattern))
+	return matches
+}
 
-	workdir, err := ioutil.TempDir(self.Config.TmpdirPrefix, "cwlwork_")
-	if err != nil {
-		return cwl.JSONDict{}, fmt.Errorf("Unable to create working dir")
-	}
-	log.Printf("Command Args: %#v", job.Cmd)
+func (self LocalRunner) ReadFile(path string) ([]byte, error) {
+	return ioutil.ReadFile(filepath.Join(self.Workdir, path))
+}
 
-	cmd_args := []string{}
+func (self LocalRunner) StartProcess(inputs cwl.JSONDict, cmd_args []string, workdir, stdout, stderr, stdin, dockerImage string) (cwl.JSONDict, error) {
 
-	js_eval := cwl.JSEvaluator{Inputs: inputs}
-
-	for i := range job.Cmd {
-		s, err := job.Cmd[i].GetArgs(js_eval)
-		if err != nil {
-			return cwl.JSONDict{}, fmt.Errorf("Expression Eval failed: %s", err)
-		}
-		cmd_args = append(cmd_args, s...)
-	}
-	log.Printf("CMD: %s", cmd_args)
 	cmd := exec.Command(cmd_args[0], cmd_args[1:]...)
 
-	if job.Stdout != "" {
-		stdout, _ := js_eval.EvaluateExpressionString(job.Stdout, nil)
-		cmd.Stdout, _ = os.Create(filepath.Join(workdir, stdout))
+	if stdout != "" {
+		var err error
+		cmd.Stdout, err = os.Create(filepath.Join(workdir, stdout))
+		if err != nil {
+			return cwl.JSONDict{}, err
+		}
 	}
-	if job.Stderr != "" {
-		stderr, _ := js_eval.EvaluateExpressionString(job.Stderr, nil)
-		cmd.Stderr, _ = os.Create(filepath.Join(workdir, stderr))
+	if stderr != "" {
+		var err error
+		cmd.Stderr, err = os.Create(filepath.Join(workdir, stderr))
+		if err != nil {
+			return cwl.JSONDict{}, err
+		}
 	}
-	if job.Stdin != "" {
-		stdin, _ := js_eval.EvaluateExpressionString(job.Stdin, nil)
-		log.Printf("STDIN: %s", stdin)
+	if stdin != "" {
 		var err error
 		cmd.Stdin, err = os.Open(stdin)
 		if err != nil {
@@ -70,71 +69,43 @@ func (self LocalRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
 		}
 	}
 	cmd.Dir = workdir
+
+	resFile := self.Workdir + ".result"
+
 	log.Printf("Workdir: %s", workdir)
-	cmd_err := cmd.Run()
-	if exiterr, ok := cmd_err.(*exec.ExitError); ok {
-		if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
-			exitStatus := status.ExitStatus()
-			log.Printf("Exit Status: %d", exitStatus)
-			found := false
-			for _, i := range job.SuccessCodes {
-				if i == exitStatus {
-					found = true
-				}
+	go func(resfile string) {
+		cmd_err := cmd.Run()
+		exitStatus := 0
+		if exiterr, ok := cmd_err.(*exec.ExitError); ok {
+			if status, ok := exiterr.Sys().(syscall.WaitStatus); ok {
+				exitStatus = status.ExitStatus()
+				log.Printf("Exit Status: %d", exitStatus)
 			}
-			if !found {
-				return cwl.JSONDict{}, cmd_err
-			}
-			cmd_err = nil
+		} else {
+			log.Printf("cmd.Run: %v", cmd_err)
 		}
-	} else {
-		log.Printf("cmd.Run: %v", err)
-	}
+		ioutil.WriteFile(resfile, []byte(fmt.Sprintf("%d", exitStatus)), 0600)
+	}(resFile)
+	return cwl.JSONDict{"resFile": resFile}, nil
+}
 
-	meta := map[interface{}]interface{}{}
-	if _, err := os.Stat(filepath.Join(workdir, "cwl.output.json")); !os.IsNotExist(err) {
-		log.Printf("Found cwl.output.json")
-		data, _ := ioutil.ReadFile(filepath.Join(workdir, "cwl.output.json"))
-		//err := json.Unmarshal(data, &out)
-		err := yaml.Unmarshal(data, &meta)
-		log.Printf("Returned: %s = %s %s", data, meta, err)
-		return meta, nil
-	}
-
-	out_files := cwl.JSONDict{}
-	for _, o := range job.GetFiles() {
-		if o.Output {
-			if o.Glob != "" {
-				glob, _ := js_eval.EvaluateExpressionString(o.Glob, nil)
-				log.Printf("Output File Glob: %s", filepath.Join(workdir, glob))
-				g, _ := filepath.Glob(filepath.Join(workdir, glob))
-				for _, p := range g {
-					log.Printf("Found %s %s", o.Id, p)
-					hasher := sha1.New()
-					file, _ := os.Open(p)
-					if _, err := io.Copy(hasher, file); err != nil {
-						log.Fatal(err)
-					}
-					hash_val := fmt.Sprintf("sha1$%x", hasher.Sum([]byte{}))
-					file.Close()
-					info, _ := os.Stat(p)
-					f := map[interface{}]interface{}{"location": p, "checksum": hash_val, "class": "File", "size": info.Size()}
-					out_files[o.Id] = f
-				}
-			}
-		}
-	}
-
+func (self LocalRunner) GetOutput(prodData cwl.JSONDict) cwl.JSONDict {
 	out := cwl.JSONDict{}
-	for k, v := range job.Outputs {
-		if a, ok := meta[k]; ok {
-			out[k] = a
-		}
-		if v.TypeName == "File" || v.TypeName == "stdout" || v.TypeName == "stderr" {
-			if _, ok := out_files[k]; ok {
-				out[k] = out_files[k]
-			}
-		}
+	path := filepath.Join(self.Workdir, "cwl.output.json")
+	if _, err := os.Stat(path); err == nil {
+		log.Printf("Found cwl.output.json")
+		data, _ := ioutil.ReadFile(path)
+		err := yaml.Unmarshal(data, &out)
+		log.Printf("Returned: %s = %s %s", data, out, err)
 	}
-	return out, cmd_err
+	return out
+}
+
+func (self LocalRunner) ExitCode(procData cwl.JSONDict) (int, bool) {
+	if _, err := os.Stat(procData["resFile"].(string)); err == nil {
+		d, _ := ioutil.ReadFile(procData["resFile"].(string))
+		i, _ := strconv.Atoi(string(d))
+		return i, true
+	}
+	return 0, false
 }

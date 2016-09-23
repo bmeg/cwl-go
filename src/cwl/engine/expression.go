@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func NewExpressionRunner(config Config) CWLRunner {
+func NewExpressionRunner(config Config) JobRunner {
 	return ExpressionRunner{Config: config}
 }
 
@@ -14,48 +14,40 @@ type ExpressionRunner struct {
 	Config Config
 }
 
+func (self ExpressionRunner) GetWorkDirPath() string {
+	return "/tmp"
+}
 func (self ExpressionRunner) LocationToPath(location string) string {
 	return location
 }
 
-func (self ExpressionRunner) RunCommand(job cwl.Job) (cwl.JSONDict, error) {
-	log.Printf("Running Expression %s", job.Expression)
+func (self ExpressionRunner) Glob(string) []string {
+	return []string{}
+}
 
-	inputs := MapInputs(job.InputData, self)
+func (self ExpressionRunner) ReadFile(string) ([]byte, error) {
+	return []byte{}, fmt.Errorf("No files in expression engine")
+}
+
+func (self ExpressionRunner) StartProcess(inputs cwl.JSONDict, cmd_args []string, workdir, stdout, stderr, stdin, dockerImage string) (cwl.JSONDict, error) {
+	log.Printf("Running Expression %s", cmd_args[0])
+	log.Printf("Expression Inputs: %#v", inputs)
+
 	js_eval := cwl.JSEvaluator{Inputs: inputs}
 
-	js_inputs := cwl.JSONDict{}
-	for _, v := range job.Cmd {
-		s, err := v.EvaluateObject(js_eval)
-		if err != nil {
-			return cwl.JSONDict{}, fmt.Errorf("Input Eval Failure: %s", err)
-		}
-		js_inputs[v.Id] = s
-	}
-	js_eval = cwl.JSEvaluator{Inputs: js_inputs}
-
-	log.Printf("Expression Inputs: %#v", js_inputs)
-	out, err := js_eval.EvaluateExpressionObject(job.Expression, nil)
+	out, err := js_eval.EvaluateExpressionObject(cmd_args[0], nil)
 	if err != nil {
 		return cwl.JSONDict{}, fmt.Errorf("ExpressionTool Failure: %s", err)
 	}
 	log.Printf("expression out: %s", out)
+	return cwl.JSONDict{"output": out}, nil
+}
 
-	out_dict := cwl.JSONDict{}
-	for k, v := range job.Outputs {
-		o_v, _ := out.Get(k)
-		log.Printf("%s: %#v", k, v, o_v)
-		switch {
-		case v.TypeName == "int":
-			var err error
-			out_dict[k], err = o_v.ToInteger()
-			if err != nil {
-				return cwl.JSONDict{}, fmt.Errorf("Output Read error Type: %s", err)
-			}
-		default:
-			return cwl.JSONDict{}, fmt.Errorf("Unknown Type: %s", v.TypeName)
-		}
-	}
-	log.Printf("Expression Returning: %#v", out_dict)
-	return out_dict, nil
+func (self ExpressionRunner) ExitCode(prodData cwl.JSONDict) (int, bool) {
+	return 0, true
+}
+
+func (self ExpressionRunner) GetOutput(prodData cwl.JSONDict) cwl.JSONDict {
+
+	return prodData["output"].(cwl.JSONDict)
 }

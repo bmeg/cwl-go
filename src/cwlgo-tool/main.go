@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -66,8 +67,6 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	runner := cwl_engine.NewLocalRunner(config)
-	expression_runner := cwl_engine.NewExpressionRunner(config)
 
 	if cwl_docs.Main == "" {
 		if element_id == "" {
@@ -88,21 +87,33 @@ func main() {
 				log.Printf("%s", err)
 				os.Exit(1)
 			}
+			var runner cwl_engine.JobRunner
 			if job.JobType == cwl.EXPRESSION {
-				out, err := expression_runner.RunCommand(job)
-				if err != nil {
-					log.Printf("Runtime Error: %s", err)
-					os.Exit(1)
-				}
-				graphState = cwl_doc.UpdateStepResults(graphState, step, out)
+				runner = cwl_engine.NewExpressionRunner(config)
 			} else {
-				out, err := runner.RunCommand(job)
-				if err != nil {
-					log.Printf("Runtime Error: %s", err)
-					os.Exit(1)
+				if job.DockerImage != "" {
+					runner, _ = cwl_engine.NewDockerRunner(config)
+				} else {
+					runner, _ = cwl_engine.NewLocalRunner(config)
 				}
-				graphState = cwl_doc.UpdateStepResults(graphState, step, out)
 			}
+
+			task, err := cwl_engine.StartJob(job, runner)
+			if err != nil {
+				log.Printf("Runtime Error: %s", err)
+				os.Exit(1)
+			}
+
+			sleepTime := time.Microsecond
+			for !cwl_engine.JobDone(task, runner) {
+				time.Sleep(sleepTime)
+				if sleepTime < time.Second*10 {
+					sleepTime += time.Millisecond
+				}
+			}
+
+			out, _ := cwl_engine.CleanupJob(task, runner)
+			graphState = cwl_doc.UpdateStepResults(graphState, step, out)
 			readyCount += 1
 		}
 		if readyCount == 0 {
