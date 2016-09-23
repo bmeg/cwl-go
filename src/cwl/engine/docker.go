@@ -87,8 +87,9 @@ func (self DockerRunner) StartProcess(inputs cwl.JSONDict, cmd_args []string, wo
 			}
 		}
 		if stdin != "" {
+			log.Printf("Stdin %s to %s", stdin, self.fileMap[stdin])
 			var err error
-			cmd.Stdin, err = os.Open(stdin)
+			cmd.Stdin, err = os.Open(self.fileMap[stdin])
 			if err != nil {
 				callback(1)
 				return
