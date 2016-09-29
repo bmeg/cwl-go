@@ -50,12 +50,13 @@ type JobArgument struct {
 }
 
 type JobFile struct {
-	Id       string
-	Path     string
-	Location string
-	Dir      bool
-	Output   bool
-	Glob     string
+	Id           string
+	Path         string
+	Location     string
+	Dir          bool
+	Output       bool
+	LoadContents bool
+	Glob         string
 }
 
 type CWLGraph struct {
@@ -131,6 +132,7 @@ type Schema struct {
 	Position      int
 	ItemSeparator string
 	Bound         bool
+	LoadContents  bool
 	Default       *interface{}
 }
 
@@ -176,6 +178,11 @@ type SchemaDefRequirement struct {
 type DockerRequirement struct {
 	DockerPull string
 }
+
+type ResourceRequirement struct {
+	Props map[string]interface{}
+}
+
 type InlineJavascriptRequirement struct {
 }
 

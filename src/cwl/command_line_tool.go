@@ -204,7 +204,7 @@ func (self *Schema) SchemaEvaluate(value interface{}) (JobArgument, error) {
 			if class, ok := base["class"]; ok {
 				if class.(string) == "File" {
 					loc := base["location"].(string)
-					out_args.File = &JobFile{Id: self.Id, Location: loc}
+					out_args.File = &JobFile{Id: self.Id, Location: loc, LoadContents: self.LoadContents}
 					out_args.Value = "$(self.path)"
 				} else {
 					log.Printf("Unknown class %s", class)

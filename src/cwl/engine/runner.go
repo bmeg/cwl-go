@@ -61,6 +61,11 @@ func mapInputs(x interface{}, mapper JobRunner) interface{} {
 				x["nameroot"] = root
 				x["nameext"] = ext
 				x["basename"] = filepath.Base(x["path"].(string))
+				if b, ok := base["loadContents"]; ok {
+					if b.(bool) {
+						log.Printf("Load Contents")
+					}
+				}
 				return x
 			}
 			if classBase == "Directory" {
@@ -125,6 +130,7 @@ func StartJob(job cwl.Job, runner JobRunner) (TaskRecord, error) {
 	log.Printf("Command Args: %#v", job.Cmd)
 	log.Printf("Command Files: %#v", job.GetFiles())
 	log.Printf("Command Inputs: %#v", job.InputData)
+	log.Printf("Command Outputs: %#v", job.Outputs)
 
 	input_data := job.InputData
 	//attempting to get input files not mentioned in the user request, ie
@@ -134,9 +140,10 @@ func StartJob(job cwl.Job, runner JobRunner) (TaskRecord, error) {
 			if i.Id != "" {
 				if _, ok := input_data[i.Id]; !ok {
 					input_data[i.Id] = map[interface{}]interface{}{
-						"class":    "File",
-						"location": i.Location,
-						"path":     i.Path,
+						"class":        "File",
+						"location":     i.Location,
+						"path":         i.Path,
+						"loadContents": i.LoadContents,
 					}
 				}
 			}

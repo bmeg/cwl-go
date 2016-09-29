@@ -76,7 +76,16 @@ func main() {
 		cwl_docs.Main = element_id
 	}
 
-	cwl_doc := cwl_docs.Elements[cwl_docs.Main]
+	var ok bool
+	var cwl_doc cwl.CWLDoc
+	cwl_doc, ok = cwl_docs.Elements[cwl_docs.Main]
+	if !ok {
+		cwl_doc, ok = cwl_docs.Elements["#"+cwl_docs.Main]
+	}
+	if !ok {
+		os.Stderr.WriteString(fmt.Sprintf("Element %s not found\n", cwl_docs.Main))
+		os.Exit(1)
+	}
 	log.Printf("Starting run")
 	graphState := cwl_doc.NewGraphState(inputs)
 	for !cwl_doc.Done(graphState) {

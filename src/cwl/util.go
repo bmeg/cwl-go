@@ -90,7 +90,6 @@ func (self GraphState) HasResults(stepId string) bool {
 
 func (self GraphState) GetData(path string) (interface{}, bool) {
 	tmp := strings.Split(path, "/")
-	log.Printf("Find Path: %#v", tmp)
 	if len(tmp) == 1 {
 		if base, ok := self[INPUT_FIELD]; ok {
 			if strings.HasPrefix(path, "#") {
@@ -108,7 +107,6 @@ func (self GraphState) GetData(path string) (interface{}, bool) {
 		if strings.HasPrefix(tmp[0], "#") {
 			tmp[0] = tmp[0][1:]
 		}
-		log.Printf("Path: %#v", tmp)
 		if base, ok := self[tmp[0]]; ok {
 			if _, ok := base[RESULTS_FIELD]; ok {
 				if v, ok := (base[RESULTS_FIELD].(JSONDict))[tmp[1]]; ok {
@@ -125,8 +123,12 @@ func (self GraphState) GetData(path string) (interface{}, bool) {
 }
 
 func (self *JobFile) ToJSONDict() JSONDict {
-	return JSONDict{
+	a := JSONDict{
 		"class":    "File",
 		"location": self.Location,
 	}
+	if self.LoadContents {
+		a["loadContents"] = true
+	}
+	return a
 }

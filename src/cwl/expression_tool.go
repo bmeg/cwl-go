@@ -40,7 +40,14 @@ func (self ExpressionTool) GenerateJob(step string, graphState GraphState) (Job,
 		}
 	}
 
-	return Job{JobType: EXPRESSION, Cmd: args, Expression: self.Expression, Outputs: outputs, Inputs: inputs}, nil
+	return Job{
+		JobType:    EXPRESSION,
+		Cmd:        args,
+		Expression: self.Expression,
+		Outputs:    outputs,
+		Inputs:     inputs,
+		InputData:  graphState[INPUT_FIELD][RESULTS_FIELD].(JSONDict),
+	}, nil
 }
 
 func (self ExpressionTool) GetIDs() []string {

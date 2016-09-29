@@ -111,7 +111,7 @@ func (self *CWLParser) GetElement(path string) (CWLDoc, error) {
 		return i, nil
 	} else {
 		if strings.HasPrefix(path, "#") {
-			log.Printf("Need to parse another part of the graph")
+			log.Printf("Need to parse another part of the graph: %s%s", self.Path, path)
 			source, err := ioutil.ReadFile(self.Path)
 			if err != nil {
 				return nil, fmt.Errorf("Unable to parse file: %s", err)
@@ -124,7 +124,7 @@ func (self *CWLParser) GetElement(path string) (CWLDoc, error) {
 				if base, ok := doc["$graph"].([]interface{}); ok {
 					for _, i := range base {
 						if bmap, ok := i.(map[interface{}]interface{}); ok {
-							if bmap["id"] == p {
+							if bmap["id"] == p || bmap["id"] == "#"+p {
 								log.Printf("Found it")
 								c, err := parser.NewClass(bmap)
 								if err != nil {
@@ -137,6 +137,7 @@ func (self *CWLParser) GetElement(path string) (CWLDoc, error) {
 						}
 					}
 				}
+				return nil, fmt.Errorf("Element %s not found", p)
 			} else {
 				return nil, fmt.Errorf("Not a cwl graph file")
 			}
@@ -824,6 +825,9 @@ func (self *CWLParser) NewSchema(value interface{}) (Schema, error) {
 			if itemSep, ok := binding.(map[interface{}]interface{})["itemSeparator"].(string); ok {
 				out.ItemSeparator = itemSep
 			}
+			if loadContents, ok := binding.(map[interface{}]interface{})["loadContents"].(bool); ok {
+				out.LoadContents = loadContents
+			}
 		}
 
 		if def, ok := base["default"]; ok {
@@ -963,6 +967,8 @@ func (self *CWLParser) NewRequirement(id_string string, conf interface{}) (Requi
 		return self.NewInitialWorkDirRequirement(conf)
 	case id_string == "DockerRequirement":
 		return self.NewDockerRequirement(conf)
+	case id_string == "ResourceRequirement":
+		return self.NewResourceRequirement(conf)
 	default:
 		log.Printf("Unsupported Requirement %s", id_string)
 		e := UnsupportedRequirement{Message: fmt.Sprintf("Unknown requirement: %s", id_string)}
@@ -989,6 +995,21 @@ func (self *CWLParser) NewSchemaDefRequirement(conf interface{}) (SchemaDefRequi
 		}
 	}
 	return SchemaDefRequirement{NewTypes: newTypes}, nil
+}
+
+func (self *CWLParser) NewResourceRequirement(conf interface{}) (ResourceRequirement, error) {
+	props := map[string]interface{}{}
+	if base, ok := conf.(map[interface{}]interface{}); ok {
+		for k, v := range base {
+			key := k.(string)
+			if key != "class" {
+				props[key] = v
+			}
+		}
+	}
+	return ResourceRequirement{
+		Props: props,
+	}, nil
 }
 
 func (self *CWLParser) NewDockerRequirement(x interface{}) (DockerRequirement, error) {
