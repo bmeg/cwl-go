@@ -75,47 +75,41 @@ func getFilePaths(x interface{}) []string {
 	return out
 }
 
-func (self JSONDict) GetFilePaths() []string {
-	return getFilePaths(self)
-}
-
-func (self GraphState) HasResults(stepId string) bool {
-	if _, ok := self[stepId]; ok {
-		if _, ok := self[stepId][RESULTS_FIELD]; ok {
-			return true
+func IsFileStruct(x interface{}) bool {
+	if base, ok := x.(map[interface{}]interface{}); ok {
+		if b, ok := base["class"]; ok {
+			if b == "File" {
+				return true
+			}
 		}
 	}
 	return false
 }
 
-func (self GraphState) GetData(path string) (interface{}, bool) {
+func (self JSONDict) GetFilePaths() []string {
+	return getFilePaths(self)
+}
+
+func (self JSONDict) GetData(path string) (interface{}, bool) {
+	//log.Printf("Get Search: %s", path)
 	tmp := strings.Split(path, "/")
 	if len(tmp) == 1 {
-		if base, ok := self[INPUT_FIELD]; ok {
+		/*
 			if strings.HasPrefix(path, "#") {
 				path = path[1:]
 			}
-			if v, ok := (base[RESULTS_FIELD].(JSONDict))[path]; ok {
-				return v, true
-			} else {
-				return nil, false
-			}
-		} else {
-			return nil, false
-		}
+		*/
+		b, ok := self[path]
+		return b, ok
 	} else {
-		if strings.HasPrefix(tmp[0], "#") {
-			tmp[0] = tmp[0][1:]
-		}
+		/*
+			if strings.HasPrefix(tmp[0], "#") {
+				tmp[0] = tmp[0][1:]
+			}
+		*/
 		if base, ok := self[tmp[0]]; ok {
-			if _, ok := base[RESULTS_FIELD]; ok {
-				if v, ok := (base[RESULTS_FIELD].(JSONDict))[tmp[1]]; ok {
-					return v, true
-				} else {
-					return nil, false
-				}
-			} else {
-				return nil, false
+			if b, ok := base.(JSONDict); ok {
+				return b.GetData(strings.Join(tmp[1:], "/"))
 			}
 		}
 	}

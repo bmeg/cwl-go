@@ -4,13 +4,12 @@ type CWLDocData map[string]interface{}
 
 type JSONDict map[interface{}]interface{}
 
-type GraphState map[string]JobState
 type JobState map[string]interface{}
 
 const INPUT_FIELD = "#"
-const RESULTS_FIELD = "results"
-const RUNTIME_FIELD = "runtime"
-const ERROR_FIELD = "error"
+const RESULTS_FIELD = "?"
+const RUNTIME_FIELD = "@"
+const ERROR_FIELD = "!"
 
 const (
 	COMMAND    = iota
@@ -66,12 +65,12 @@ type CWLGraph struct {
 
 type CWLDoc interface {
 	GetIDs() []string
-	NewGraphState(inputs JSONDict) GraphState
-	Done(GraphState) bool
-	UpdateStepResults(GraphState, string, JSONDict) GraphState
-	ReadySteps(state GraphState) []string
-	GetResults(state GraphState) JSONDict
-	GenerateJob(step string, graphState GraphState) (Job, error)
+	NewGraphState(inputs JSONDict) JSONDict
+	Done(JSONDict) bool
+	UpdateStepResults(JSONDict, string, JSONDict) JSONDict
+	ReadySteps(state JSONDict) []string
+	GetResults(state JSONDict) JSONDict
+	GenerateJob(step string, graphState JSONDict) (Job, error)
 }
 
 type Workflow struct {
@@ -113,9 +112,8 @@ type Step struct {
 }
 
 type StepInput struct {
-	Id      string
-	Source  string
-	Default *interface{}
+	Schema
+	Source string
 }
 
 type StepOutput struct {

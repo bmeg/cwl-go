@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-func (self Workflow) NewGraphState(inputs JSONDict) GraphState {
-	return GraphState{INPUT_FIELD: JobState{RESULTS_FIELD: inputs}}
+func (self Workflow) NewGraphState(inputs JSONDict) JSONDict {
+	return JSONDict{INPUT_FIELD: inputs}
 }
 
-func (self Workflow) ReadySteps(state GraphState) []string {
+func (self Workflow) ReadySteps(state JSONDict) []string {
 	out := []string{}
 	for k, v := range self.Steps {
 		if v.Ready(state) {
@@ -21,16 +21,22 @@ func (self Workflow) ReadySteps(state GraphState) []string {
 	return out
 }
 
-func (self Workflow) UpdateStepResults(state GraphState, stepId string, results JSONDict) GraphState {
-	out := GraphState{}
+func (self Workflow) UpdateStepResults(state JSONDict, stepId string, results JSONDict) JSONDict {
+	out := JSONDict{}
 	for k, v := range state {
 		out[k] = v
 	}
-	out[stepId] = JobState{RESULTS_FIELD: results}
+	step := JSONDict{}
+	if base, ok := out[stepId].(JSONDict); ok {
+		step = base
+	} else {
+		step[RESULTS_FIELD] = results
+	}
+	out[stepId] = step
 	return out
 }
 
-func (self Workflow) Done(state GraphState) bool {
+func (self Workflow) Done(state JSONDict) bool {
 	done := true
 	for i := range self.Steps {
 		if _, ok := state[i]; !ok {
@@ -41,7 +47,7 @@ func (self Workflow) Done(state GraphState) bool {
 	return done
 }
 
-func (self Workflow) GenerateJob(step string, graphState GraphState) (Job, error) {
+func (self Workflow) GenerateJob(step string, graphState JSONDict) (Job, error) {
 	jobState := self.Steps[step].BuildStepInput(graphState)
 	job, err := self.Steps[step].Doc.GenerateJob(step, jobState)
 	if err != nil {
@@ -59,7 +65,7 @@ func (self Workflow) GetIDs() []string {
 	return out
 }
 
-func (self Workflow) GetResults(state GraphState) JSONDict {
+func (self Workflow) GetResults(state JSONDict) JSONDict {
 	log.Printf("Workflow Results: %#v", state)
 	out := JSONDict{}
 	for k, v := range self.Outputs {
@@ -81,18 +87,36 @@ func (self Workflow) GetDefault(name string) (*interface{}, bool) {
 	return nil, false
 }
 
-func (self Step) Ready(state GraphState) bool {
-	if state.HasResults(self.Id) {
+func (self Step) Ready(state JSONDict) bool {
+	if _, ok := state.GetData(fmt.Sprintf("%s/%s", self.Id, RESULTS_FIELD)); ok {
+		log.Printf("Step %s done", self.Id)
 		return false
 	}
 	ready := true
 	for _, v := range self.In {
-		if _, ok := state.GetData(v.Source); !ok {
-			if _, ok := self.Parent.GetDefault(v.Source); !ok {
-				ready = false
-				log.Printf("Step %s input %s not found in %#v", self.Id, v.Source, state)
-			} else {
-				log.Printf("Step %s input %s has default", self.Id, v.Source)
+		tmp := strings.Split(v.Source, "/")
+		found := false
+		if len(tmp) == 1 {
+			if _, ok := state.GetData(fmt.Sprintf("%s/%s", INPUT_FIELD, tmp[0])); ok {
+				found = true
+			}
+		} else {
+			if b, ok := state[tmp[0]]; ok {
+				o := self.Doc.GetResults(b.(JSONDict))
+				log.Printf("Checking for %s in results %s", tmp[1], o)
+				if _, ok := o[tmp[1]]; ok {
+					found = true
+				}
+			}
+		}
+		if !found {
+			if v.Default == nil {
+				if _, ok := self.Parent.GetDefault(v.Source); !ok {
+					ready = false
+					log.Printf("Step %s input %s not found in %#v", self.Id, v.Source, state)
+				} else {
+					log.Printf("Step %s input %s has default", self.Id, v.Source)
+				}
 			}
 		} else {
 			log.Printf("Step %s found input %s in %#v", self.Id, v.Source, state)
@@ -101,19 +125,36 @@ func (self Step) Ready(state GraphState) bool {
 	return ready
 }
 
-func (self Step) BuildStepInput(state GraphState) GraphState {
-	out := GraphState{}
+func (self Step) BuildStepInput(state JSONDict) JSONDict {
+	out := JSONDict{}
 	out[INPUT_FIELD] = JobState{}
 	inputs := JSONDict{}
 	for k, v := range self.In {
-		if i, ok := state.GetData(v.Source); ok {
-			inputs[k] = i
+		tmp := strings.Split(v.Source, "/")
+		if len(tmp) == 1 {
+			if i, ok := state.GetData(fmt.Sprintf("%s/%s", INPUT_FIELD, tmp[0])); ok {
+				inputs[k] = i
+			}
 		} else {
-			i_default, _ := self.Parent.GetDefault(v.Source)
-			inputs[k] = *i_default
+			if b, ok := state[tmp[0]]; ok {
+				o := self.Doc.GetResults(b.(JSONDict))
+				if i, ok := o[tmp[1]]; ok {
+					inputs[k] = i
+				}
+			}
+		}
+		if _, ok := inputs[k]; !ok {
+			if v.Default != nil {
+				inputs[k] = *v.Default
+			} else {
+				i_default, _ := self.Parent.GetDefault(v.Source)
+				if i_default != nil {
+					inputs[k] = *i_default
+				}
+			}
 		}
 	}
-	out[INPUT_FIELD][RESULTS_FIELD] = inputs
+	out[INPUT_FIELD] = inputs
 	log.Printf("Input Built: %#v from %#v", out, self.In)
 	return out
 }

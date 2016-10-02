@@ -55,7 +55,7 @@ func mapInputs(x interface{}, mapper JobRunner) interface{} {
 		if classBase, ok := base["class"]; ok {
 			if classBase == "File" && len(base["location"].(string)) > 0 {
 				x := cwl.JSONDict{"class": "File"}
-				log.Printf("Mapping %s", base["location"].(string))
+				log.Printf("Mapping %s : %s", base["location"].(string), base)
 				x["path"] = mapper.LocationToPath(base["location"].(string))
 				root, ext := FileNameSplit(x["path"].(string))
 				x["nameroot"] = root
@@ -63,7 +63,8 @@ func mapInputs(x interface{}, mapper JobRunner) interface{} {
 				x["basename"] = filepath.Base(x["path"].(string))
 				if b, ok := base["loadContents"]; ok {
 					if b.(bool) {
-						log.Printf("Load Contents")
+						x["contents"], _ = mapper.ReadFile(base["location"].(string))
+						log.Printf("Load Contents1: %s", base["location"].(string))
 					}
 				}
 				return x
@@ -93,6 +94,12 @@ func mapInputs(x interface{}, mapper JobRunner) interface{} {
 				x["nameroot"] = root
 				x["nameext"] = ext
 				x["basename"] = filepath.Base(x["path"].(string))
+				if b, ok := base["loadContents"]; ok {
+					if b.(bool) {
+						x["contents"], _ = mapper.ReadFile(base["location"].(string))
+						log.Printf("Load Contents2")
+					}
+				}
 				return x
 			}
 			if classBase == "Directory" {
@@ -138,21 +145,22 @@ func StartJob(job cwl.Job, runner JobRunner) (TaskRecord, error) {
 	for _, i := range job.GetFiles() {
 		if !i.Output {
 			if i.Id != "" {
-				if _, ok := input_data[i.Id]; !ok {
-					input_data[i.Id] = map[interface{}]interface{}{
-						"class":        "File",
-						"location":     i.Location,
-						"path":         i.Path,
-						"loadContents": i.LoadContents,
-					}
+				//if _, ok := input_data[i.Id]; !ok {
+				log.Printf("Translating %s %#v", i.Id, i)
+				input_data[i.Id] = map[interface{}]interface{}{
+					"class":        "File",
+					"location":     i.Location,
+					"path":         i.Path,
+					"loadContents": i.LoadContents,
 				}
+				//}
 			}
 		}
 	}
-
+	log.Printf("Translated Input: %s", input_data)
 	//get the inputs using the path mapper from the job runner
 	inputs := MapInputs(input_data, runner)
-	log.Printf("Translated Input: %s", inputs)
+	log.Printf("Mapped Inputs: %s", inputs)
 	js_eval := cwl.JSEvaluator{Inputs: inputs}
 	//process command line arguments
 	cmd_args := []string{}
@@ -176,7 +184,8 @@ func StartJob(job cwl.Job, runner JobRunner) (TaskRecord, error) {
 			}
 			js_inputs[job.Cmd[i].Id] = s
 		}
-		inputs = js_inputs
+		inputs = MapInputs(js_inputs, runner)
+		log.Printf("Expression Conversion: %s", inputs)
 	}
 	log.Printf("CMD: %s", cmd_args)
 

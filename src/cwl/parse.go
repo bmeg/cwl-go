@@ -561,13 +561,23 @@ func (self *CWLParser) NewStep(id string, x interface{}) (Step, error) {
 		}
 
 		if bRun, ok := base["run"]; ok {
-			r := bRun.(string)
-			log.Printf("StepRun: %s", r)
-			doc, err := self.GetElement(r)
-			if err != nil {
-				return sout, fmt.Errorf("Unable to parse step %s: %s", sout.Id, err)
+			if r, ok := bRun.(string); ok {
+				log.Printf("StepRun: %s", r)
+				doc, err := self.GetElement(r)
+				if err != nil {
+					return sout, fmt.Errorf("Unable to parse step %s: %s", sout.Id, err)
+				}
+				sout.Doc = doc
+			} else if r, ok := bRun.(map[interface{}]interface{}); ok {
+				d, err := self.NewClass(r)
+				if err != nil {
+					return sout, fmt.Errorf("Runable to parse run: %s", err)
+				}
+				sout.Doc = d.Elements[d.Main]
+			} else {
+				return sout, fmt.Errorf("Can't parse run block")
 			}
-			sout.Doc = doc
+
 		}
 
 	} else {
@@ -627,27 +637,34 @@ func (self *CWLParser) NewStepOutputSet(x interface{}) (map[string]StepOutput, e
 
 func (self *CWLParser) NewStepInput(id string, x interface{}) (StepInput, error) {
 	out := StepInput{}
-	if id != "" {
-		out.Id = id
-	}
 
 	if base, ok := x.(map[interface{}]interface{}); ok {
-		if id, ok := base["id"]; ok {
-			out.Id = id.(string)
-		}
-
 		if source, ok := base["source"]; ok {
 			out.Source = source.(string)
 		}
-		if defaultVal, ok := base["default"]; ok {
-			out.Default = &defaultVal
+		//duplicate code as the schema, need to figure out how to merge this logic....
+		if def, ok := base["default"]; ok {
+			out.Default = &def
+			if IsFileStruct(def) {
+				//special case when default value is a file
+				if base, ok := def.(map[interface{}]interface{}); ok {
+					if s, ok := base["path"]; ok {
+						base["path"] = path.Join(filepath.Dir(self.Path), s.(string))
+					}
+					if s, ok := base["location"]; ok {
+						base["location"] = path.Join(filepath.Dir(self.Path), s.(string))
+					}
+				}
+			}
 		}
 	} else if base, ok := x.(string); ok {
 		out.Source = base
 	} else {
-		return out, fmt.Errorf("Unable to parse step input")
+		return out, fmt.Errorf("Unable to parse step %s input", id)
 	}
-
+	if id != "" {
+		out.Id = id
+	}
 	return out, nil
 }
 

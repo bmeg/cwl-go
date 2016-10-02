@@ -6,32 +6,32 @@ import (
 	"sort"
 )
 
-func (self CommandLineTool) NewGraphState(inputs JSONDict) GraphState {
-	return GraphState{INPUT_FIELD: JobState{RESULTS_FIELD: inputs}}
+func (self CommandLineTool) NewGraphState(inputs JSONDict) JSONDict {
+	return JSONDict{INPUT_FIELD: inputs}
 }
 
 func (self CommandLineTool) GetIDs() []string {
 	return []string{self.Id}
 }
 
-func (self CommandLineTool) Done(state GraphState) bool {
-	if _, ok := state[self.Id]; ok {
+func (self CommandLineTool) Done(state JSONDict) bool {
+	if _, ok := state[RESULTS_FIELD]; ok {
 		return true
 	}
 	return false
 }
 
-func (self CommandLineTool) UpdateStepResults(state GraphState, stepId string, results JSONDict) GraphState {
-	out := GraphState{}
+func (self CommandLineTool) UpdateStepResults(state JSONDict, stepId string, results JSONDict) JSONDict {
+	out := JSONDict{}
 	for k, v := range state {
 		out[k] = v
 	}
-	out[stepId] = JobState{RESULTS_FIELD: results}
+	out[RESULTS_FIELD] = results
 	return out
 }
 
-func (self CommandLineTool) ReadySteps(state GraphState) []string {
-	if _, ok := state[self.Id]; ok {
+func (self CommandLineTool) ReadySteps(state JSONDict) []string {
+	if _, ok := state[RESULTS_FIELD]; ok {
 		return []string{}
 	} else if _, ok := state["#"]; ok {
 		return []string{self.Id}
@@ -39,15 +39,15 @@ func (self CommandLineTool) ReadySteps(state GraphState) []string {
 	return []string{}
 }
 
-func (self CommandLineTool) GetResults(state GraphState) JSONDict {
-	return state[self.Id][RESULTS_FIELD].(JSONDict)
+func (self CommandLineTool) GetResults(state JSONDict) JSONDict {
+	return state[RESULTS_FIELD].(JSONDict)
 }
 
-func (self CommandLineTool) GenerateJob(step string, graphState GraphState) (Job, error) {
+func (self CommandLineTool) GenerateJob(step string, graphState JSONDict) (Job, error) {
 	if i, ok := graphState[INPUT_FIELD]; !ok {
 		return Job{}, fmt.Errorf("%s Inputs not ready", step)
 	} else {
-		args, err := self.Evaluate(i[RESULTS_FIELD].(JSONDict))
+		args, err := self.Evaluate(i.(JSONDict))
 		if err != nil {
 			log.Printf("Job Eval Error: %s", err)
 			return Job{}, err
@@ -99,7 +99,7 @@ func (self CommandLineTool) GenerateJob(step string, graphState GraphState) (Job
 			Stderr:       stderr,
 			Stdout:       stdout,
 			Stdin:        stdin,
-			InputData:    i[RESULTS_FIELD].(JSONDict),
+			InputData:    i.(JSONDict),
 			DockerImage:  dockerImage,
 			SuccessCodes: self.SuccessCodes,
 			Outputs:      outputs,

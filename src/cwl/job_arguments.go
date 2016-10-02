@@ -72,5 +72,6 @@ func (self *JobArgument) EvaluateStrings(evaluator JSEvaluator, pathMapper func(
 }
 
 func (self *JobArgument) EvaluateObject(evaluator JSEvaluator) (interface{}, error) {
+	log.Printf("Expression:%s", self.RawValue)
 	return self.RawValue, nil
 }

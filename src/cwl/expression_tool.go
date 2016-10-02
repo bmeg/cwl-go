@@ -5,18 +5,18 @@ import (
 	"log"
 )
 
-func (self ExpressionTool) NewGraphState(inputs JSONDict) GraphState {
-	return GraphState{INPUT_FIELD: JobState{RESULTS_FIELD: inputs}}
+func (self ExpressionTool) NewGraphState(inputs JSONDict) JSONDict {
+	return JSONDict{INPUT_FIELD: inputs}
 }
 
-func (self ExpressionTool) Done(state GraphState) bool {
-	if _, ok := state[self.Id]; ok {
+func (self ExpressionTool) Done(state JSONDict) bool {
+	if _, ok := state[RESULTS_FIELD]; ok {
 		return true
 	}
 	return false
 }
 
-func (self ExpressionTool) GenerateJob(step string, graphState GraphState) (Job, error) {
+func (self ExpressionTool) GenerateJob(step string, graphState JSONDict) (Job, error) {
 	outputs := map[string]Schema{}
 	for k, v := range self.Outputs {
 		outputs[k] = v.Schema
@@ -30,7 +30,7 @@ func (self ExpressionTool) GenerateJob(step string, graphState GraphState) (Job,
 	if i, ok := graphState[INPUT_FIELD]; !ok {
 		return Job{}, fmt.Errorf("%s Inputs not ready", step)
 	} else {
-		data_input := i[RESULTS_FIELD].(JSONDict)
+		data_input := i.(JSONDict)
 		for _, x := range self.Inputs {
 			new_args, err := x.Evaluate(data_input)
 			if err != nil {
@@ -46,7 +46,7 @@ func (self ExpressionTool) GenerateJob(step string, graphState GraphState) (Job,
 		Expression: self.Expression,
 		Outputs:    outputs,
 		Inputs:     inputs,
-		InputData:  graphState[INPUT_FIELD][RESULTS_FIELD].(JSONDict),
+		InputData:  graphState[INPUT_FIELD].(JSONDict),
 	}, nil
 }
 
@@ -54,25 +54,23 @@ func (self ExpressionTool) GetIDs() []string {
 	return []string{self.Id}
 }
 
-func (self ExpressionTool) GetResults(state GraphState) JSONDict {
-	return state[self.Id][RESULTS_FIELD].(JSONDict)
+func (self ExpressionTool) GetResults(state JSONDict) JSONDict {
+	return state[RESULTS_FIELD].(JSONDict)
 }
 
-func (self ExpressionTool) ReadySteps(state GraphState) []string {
-	if _, ok := state[self.Id]; ok {
-		return []string{}
-	} else if _, ok := state["#"]; ok {
+func (self ExpressionTool) ReadySteps(state JSONDict) []string {
+	if _, ok := state[INPUT_FIELD]; ok {
 		return []string{self.Id}
 	}
 	return []string{}
 }
 
-func (self ExpressionTool) UpdateStepResults(state GraphState, stepId string, results JSONDict) GraphState {
-	out := GraphState{}
+func (self ExpressionTool) UpdateStepResults(state JSONDict, stepId string, results JSONDict) JSONDict {
+	out := JSONDict{}
 	for k, v := range state {
 		out[k] = v
 	}
-	out[stepId] = JobState{RESULTS_FIELD: results}
+	out[RESULTS_FIELD] = results
 	return out
 }
 

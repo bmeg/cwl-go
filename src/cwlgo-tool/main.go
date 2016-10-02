@@ -55,7 +55,7 @@ func main() {
 		}
 		os.Exit(1)
 	}
-	log.Printf("CWLDoc: %#v", cwl_docs)
+	//log.Printf("CWLDoc: %#v", cwl_docs)
 	var inputs cwl.JSONDict
 	if len(flag.Args()) == 1 {
 		inputs = cwl.JSONDict{}
@@ -86,9 +86,10 @@ func main() {
 		os.Stderr.WriteString(fmt.Sprintf("Element %s not found\n", cwl_docs.Main))
 		os.Exit(1)
 	}
-	log.Printf("Starting run")
+	log.Printf("STARTING RUN")
 	graphState := cwl_doc.NewGraphState(inputs)
 	for !cwl_doc.Done(graphState) {
+		log.Printf("StateGraph: %s", graphState.ToString())
 		readyCount := 0
 		for _, step := range cwl_doc.ReadySteps(graphState) {
 			job, err := cwl_doc.GenerateJob(step, graphState)

@@ -3,7 +3,9 @@ package cwl_engine
 import (
 	"cwl"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"path/filepath"
 )
 
 func NewExpressionRunner(config Config) JobRunner {
@@ -25,8 +27,9 @@ func (self ExpressionRunner) Glob(string) []string {
 	return []string{}
 }
 
-func (self ExpressionRunner) ReadFile(string) ([]byte, error) {
-	return []byte{}, fmt.Errorf("No files in expression engine")
+func (self ExpressionRunner) ReadFile(location string) ([]byte, error) {
+	return ioutil.ReadFile(filepath.Join(location))
+	//return []byte{}, fmt.Errorf("No files in expression engine")
 }
 
 func (self ExpressionRunner) StartProcess(inputs cwl.JSONDict, cmd_args []string, workdir, stdout, stderr, stdin, dockerImage string) (cwl.JSONDict, error) {

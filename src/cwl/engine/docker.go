@@ -125,8 +125,8 @@ func (self DockerRunner) GetOutput(prodData cwl.JSONDict) cwl.JSONDict {
 	return out
 }
 
-func (self DockerRunner) ReadFile(path string) ([]byte, error) {
-	return ioutil.ReadFile(filepath.Join(self.hostWorkDir, path))
+func (self DockerRunner) ReadFile(location string) ([]byte, error) {
+	return ioutil.ReadFile(filepath.Join(location))
 }
 
 func (self DockerRunner) Glob(pattern string) []string {
