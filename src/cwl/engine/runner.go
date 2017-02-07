@@ -27,11 +27,14 @@ type TaskRecord struct {
 	Job      cwl.Job
 }
 
+type PathMapper interface {
+	MapFile(map[interface{}]interface{}) map[interface{}]interface{}
+}
+
 type JobRunner interface {
 	StartProcess(inputs cwl.JSONDict, cmd_args []string, workdir, stdout, stderr, stdin, dockerImage string) (cwl.JSONDict, error)
 	ExitCode(prodData cwl.JSONDict) (int, bool)
 	GetOutput(prodData cwl.JSONDict) cwl.JSONDict
-	LocationToPath(location string) string
 	GetWorkDirPath() string
 	Glob(path string) []string
 	ReadFile(path string) ([]byte, error)
@@ -50,62 +53,34 @@ func FileNameSplit(path string) (string, string) {
 	return strings.Join(tmp[:len(tmp)-1], "."), "." + tmp[len(tmp)-1]
 }
 
-func mapInputs(x interface{}, mapper JobRunner) interface{} {
-	if base, ok := x.(map[interface{}]interface{}); ok {
-		if classBase, ok := base["class"]; ok {
-			if classBase == "File" && len(base["location"].(string)) > 0 {
-				x := cwl.JSONDict{"class": "File"}
-				log.Printf("Mapping %s : %s", base["location"].(string), base)
-				x["path"] = mapper.LocationToPath(base["location"].(string))
-				root, ext := FileNameSplit(x["path"].(string))
-				x["nameroot"] = root
-				x["nameext"] = ext
-				x["basename"] = filepath.Base(x["path"].(string))
-				if b, ok := base["loadContents"]; ok {
-					if b.(bool) {
-						x["contents"], _ = mapper.ReadFile(base["location"].(string))
-						log.Printf("Load Contents1: %s", base["location"].(string))
-					}
-				}
-				return x
+type RuntimeMapper struct {
+	Runner JobRunner
+}
+
+
+func (self RuntimeMapper) MapFile(in map[interface{}]interface{}) map[interface{}]interface{} {
+	out := in
+	if in["class"].(string) == "File" {
+		root, ext := FileNameSplit(in["path"].(string))
+		out["nameroot"] = root
+		out["nameext"] = ext
+		out["basename"] = filepath.Base(in["path"].(string))
+		if b, ok := in["loadContents"]; ok {
+			if b.(bool) {
+				out["contents"], _ = self.Runner.ReadFile(in["location"].(string))
+				log.Printf("Load Contents: %s", in["location"].(string))
 			}
-			if classBase == "Directory" {
-				x := cwl.JSONDict{"class": "Directory"}
-				x["path"] = mapper.LocationToPath(base["location"].(string))
-				return x
-			}
-		}
-		out := map[interface{}]interface{}{}
-		for k, v := range base {
-			out[k] = mapInputs(v, mapper)
 		}
 	}
+	return out
+}
 
-	//BUG: OK This Is Stupid, the JSONDict is a super class of map[interface{}]interface{},
-	//but it doesn't catch on the statment above, so I find myself repeating the code again.
-	//need to find a better way to do this
-	if base, ok := x.(cwl.JSONDict); ok {
+
+func mapInputs(x interface{}, mapper PathMapper) interface{} {
+	if base, ok := x.(map[interface{}]interface{}); ok {
 		if classBase, ok := base["class"]; ok {
-			if classBase == "File" && len(base["location"].(string)) > 0 {
-				x := cwl.JSONDict{"class": "File"}
-				log.Printf("Mapping %s", base["location"].(string))
-				x["path"] = mapper.LocationToPath(base["location"].(string))
-				root, ext := FileNameSplit(x["path"].(string))
-				x["nameroot"] = root
-				x["nameext"] = ext
-				x["basename"] = filepath.Base(x["path"].(string))
-				if b, ok := base["loadContents"]; ok {
-					if b.(bool) {
-						x["contents"], _ = mapper.ReadFile(base["location"].(string))
-						log.Printf("Load Contents2")
-					}
-				}
-				return x
-			}
-			if classBase == "Directory" {
-				x := cwl.JSONDict{"class": "Directory"}
-				x["path"] = mapper.LocationToPath(base["location"].(string))
-				return x
+			if (classBase == "File" || classBase == "Directory") && len(base["location"].(string)) > 0 {
+				return mapper.MapFile(base)
 			}
 		}
 		out := map[interface{}]interface{}{}
@@ -124,7 +99,7 @@ func mapInputs(x interface{}, mapper JobRunner) interface{} {
 	return x
 }
 
-func MapInputs(inputs cwl.JSONDict, mapper JobRunner) cwl.JSONDict {
+func MapInputs(inputs cwl.JSONDict, mapper PathMapper) cwl.JSONDict {
 	out := cwl.JSONDict{}
 	for k, v := range inputs {
 		out[k] = mapInputs(v, mapper)
@@ -132,7 +107,7 @@ func MapInputs(inputs cwl.JSONDict, mapper JobRunner) cwl.JSONDict {
 	return out
 }
 
-func StartJob(job cwl.Job, runner JobRunner) (TaskRecord, error) {
+func StartJob(job cwl.Job, runner JobRunner, pathMapper PathMapper) (TaskRecord, error) {
 
 	log.Printf("Command Args: %#v", job.Cmd)
 	log.Printf("Command Files: %#v", job.GetFiles())
@@ -158,8 +133,9 @@ func StartJob(job cwl.Job, runner JobRunner) (TaskRecord, error) {
 		}
 	}
 	log.Printf("Translated Input: %s", input_data)
+	runtimeMapper := RuntimeMapper{Runner:runner}
 	//get the inputs using the path mapper from the job runner
-	inputs := MapInputs(input_data, runner)
+	inputs := MapInputs(input_data, runtimeMapper)
 	log.Printf("Mapped Inputs: %s", inputs)
 	js_eval := cwl.JSEvaluator{Inputs: inputs}
 	//process command line arguments
@@ -167,7 +143,7 @@ func StartJob(job cwl.Job, runner JobRunner) (TaskRecord, error) {
 	if job.JobType == cwl.COMMAND {
 		for i := range job.Cmd {
 			s, err := job.Cmd[i].GetArgs(js_eval, func(x interface{}) interface{} {
-				return mapInputs(x, runner)
+				return mapInputs(x, pathMapper)
 			})
 			if err != nil {
 				return TaskRecord{}, fmt.Errorf("Expression Eval failed: %s", err)
@@ -184,7 +160,7 @@ func StartJob(job cwl.Job, runner JobRunner) (TaskRecord, error) {
 			}
 			js_inputs[job.Cmd[i].Id] = s
 		}
-		inputs = MapInputs(js_inputs, runner)
+		inputs = MapInputs(js_inputs, pathMapper)
 		log.Printf("Expression Conversion: %s", inputs)
 	}
 	log.Printf("CMD: %s", cmd_args)

@@ -107,8 +107,9 @@ func main() {
 					runner, _ = cwl_engine.NewLocalRunner(config)
 				}
 			}
-
-			task, err := cwl_engine.StartJob(job, runner)
+			mapper := cwl_engine.RuntimeMapper{}
+			
+			task, err := cwl_engine.StartJob(job, runner, mapper)
 			if err != nil {
 				log.Printf("Runtime Error: %s", err)
 				os.Exit(1)

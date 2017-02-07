@@ -4,6 +4,7 @@ import (
 	"cwl"
 	"fmt"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -47,7 +48,9 @@ func (self DockerNativeRunner) prepImage(imageName string) error {
 	if err != nil {
 		return err
 	}
-	list, err := client.ImageList(context.Background(), types.ImageListOptions{MatchName: imageName})
+	filt := filters.NewArgs()
+	filt.Add("image.name", imageName)
+	list, err := client.ImageList(context.Background(), types.ImageListOptions{Filters:filt})
 
 	if err != nil || len(list) == 0 {
 		log.Printf("Image %s not found: %s", imageName, err)
