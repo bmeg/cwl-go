@@ -9,13 +9,25 @@ SKIP = [
     "Any"
 ]
 
+RECORD_MAP_TEMPLATE = """
+var TYPES = map[string]reflect.Type {
+{%- for name in names %}
+    "{{name}}" : reflect.TypeOf({{name}}{}),
+{%- endfor %}
+}
+"""
+
 RECORD_TEMPLATE = """
 type {{name}} struct {
 {%- for field in fields %}
-    {{ field }} {{ fields[field]}}
+    {{ field }} {{ fields[field].type}}   {%if field.array %}[]{% endif %}`json:"{{ fields[field].name}}"`
 {%- endfor %}
 }
-
+{% if hasid %}
+func (self *{{name}}) GetID() string {
+    return self.Id
+}
+{% endif %}
 """
 
 UNION_TEMPLATE = """
@@ -32,7 +44,7 @@ ENUM_TEMPLATE = """
 type {{name}} string
 const (
 {%- for symbol in symbols %}
-    {{name}}_{{symbol}} {{Name}} = "{{symbols[symbol]}}"
+    {{name}}_{{symbol}} {{name}} = "{{symbols[symbol]}}"
 {%- endfor %}
 )
 
@@ -53,50 +65,131 @@ class Union:
     def __init__(self, name):
         self.name = name
         self.types = []
-    
+
     def add_type(self, typeName, array):
         self.types.append( {"name" : fixCaps(typeName) + "Value", "type" : typeName, "array" : array} )
-        
+
+class Record:
+    def __init__(self, doc):
+        self.doc = doc
+
+    def get_type(self):
+        return self.doc['type']
+
+    def get_fields(self):
+        fields = {}
+        for k in self.doc['fields']:
+            t = k['type']
+            if isinstance(k['type'], list):
+                if "null" in t:
+                    t.remove("null")
+                if len(t) == 1:
+                    t = t[0]
+            if t in ["string", "boolean", "int", "long", "float", "double", "Any"]:
+                if t in TYPE_MAPPING:
+                    t = TYPE_MAPPING[t]
+                fields[fixCaps(k['name'])] = { "type" : t, "name" : k['name'] }
+            else:
+                if isinstance(t, basestring):
+                    if k['name'] != "type":
+                        fields[fixCaps(k['name'])] = { "type" : t, "name" : k["name"] }
+                elif isinstance(t, dict) and t['type'] == "array" and isinstance(t['items'], basestring):
+                    l = t['items']
+                    if l in TYPE_MAPPING:
+                        l = TYPE_MAPPING[l]
+                    fields[fixCaps(k['name'])] = { "type" : "[]%s" % (l), "name" : k['name']}
+                elif isinstance(t, list):
+                    #mt = merge_types(t)
+                    pass
+                elif isinstance(t, dict) and t['type'] == "array" and isinstance(t['items'], list):
+                    pass
+                elif isinstance(t, dict) and t['type'] == "record":
+                    fields[fixCaps(k['name'])] = { "type" : t['name'], "name" : k['name']}
+                elif isinstance(t, dict) and t['type'] == "enum":
+                    pass
+                else:
+                    print "missing", t
+        return fields
+
+    def extend(self, records):
+        if 'extends' in self.doc:
+            e = self.doc['extends']
+            if not isinstance(e, list):
+                e = [e]
+            for el in e:
+                ename = el.split("#")[1]
+                if ename in records:
+                    #sys.stderr.write("extends!!! %s" % ename)
+                    for v in records[ename].doc['fields']:
+                        self.doc['fields'].append(v)
+                    #sys.stderr.write("After:%s\n" % self.doc['fields'])
+
+    def render(self):
+        fields = {}
+
+        has_id = False
+        for k,v in self.get_fields().items():
+            fields[k] = v
+            if k == "Id":
+                has_id = True
+
+        kwargs = {
+            "name" : self.doc['name'],
+            "fields" : fields,
+            "hasid" : has_id
+        }
+        return jinja2.Template(RECORD_TEMPLATE).render(**kwargs)
+
+
 
 class Schema:
     def __init__(self, doc):
         self.doc = doc
         self._records = self.list_records()
-    
+
     def generate(self):
         out = """
-package cwl;
+package cwlparser
+
+import (
+  "reflect"
+)
 
 """
         for k, v in self.list_enums().items():
             if k not in SKIP:
-                out += schema.gen_enum(v)
-        
-        for k, v in self.list_union().items():
-            out += schema.gen_union(v)
+                out += self.gen_enum(v)
 
-        for k, v in self.list_records().items():
-            out += schema.gen_record(v)
+        for k, v in self.list_union().items():
+            out += self.gen_union(v)
+
+        records = self.list_records()
+        out += self.gen_record_map(records)
+
+        for k, v in records.items():
+            out += v.render()
         return out
-            
+
     def list_records(self):
         out = {}
         for i in self.doc:
             for k, v in self.scan_record_list(i).items():
-                out[k] = v
+                out[k] = Record(v)
+        for v in out.values():
+            v.extend(out)
         return out
-    
+
     def list_enums(self):
         out = {}
         for i in self.doc:
             if i['type'] == "enum":
                 out[i['name']] = i
         return out
-    
+
     def list_union(self):
         out = {}
         for k, v in self._records.items():
-            for f in v['fields']:
+            for f in v.get_fields().values():
                 if isinstance(f['type'], list):
                     t = f['type']
                     if "null" in t:
@@ -126,7 +219,7 @@ package cwl;
                                 print "missed", i
                         out[u.name] = u
         return out
-    
+
     def scan_record_list(self, record):
         out = {}
         if record['type'] == "record":
@@ -138,9 +231,9 @@ package cwl;
                     for c in f['type']:
                         if isinstance(c, dict):
                             for k,v in self.scan_record_list(c).items():
-                                out[k] = v 
+                                out[k] = v
         return out
-    
+
     def gen_enum(self, record):
         symbols = {}
         for s in record["symbols"]:
@@ -150,9 +243,8 @@ package cwl;
             "symbols" : symbols
         }
         return jinja2.Template(ENUM_TEMPLATE).render(**kwargs)
-    
+
     def gen_union(self, union):
-        
         types = []
         for t in union.types:
             #if there is a single and array version of the same value type
@@ -166,62 +258,28 @@ package cwl;
                     types.append(t)
             else:
                 types.append(t)
-                
-        
+
+
         kwargs = {
             "name" : union.name,
             "types" : types
         }
         return jinja2.Template(UNION_TEMPLATE).render(**kwargs)
-        
-    def gen_record(self, record):
 
-        fields = {}
-        for k in record['fields']:
-            t = k['type']
-            if isinstance(k['type'], list):
-                if "null" in t:
-                    t.remove("null")
-                if len(t) == 1:
-                    t = t[0]
-            if t in ["string", "boolean", "int", "long", "float", "double", "Any"]:
-                if t in TYPE_MAPPING:
-                    t = TYPE_MAPPING[t]
-                fields[fixCaps(k['name'])] = t
-            else:
-                if isinstance(t, basestring):
-                    if k['name'] != "type":
-                        fields[fixCaps(k['name'])] = t
-                elif isinstance(t, dict) and t['type'] == "array" and isinstance(t['items'], basestring):
-                    l = t['items']
-                    if l in TYPE_MAPPING:
-                        l = TYPE_MAPPING[l]
-                    fields[fixCaps(k['name'])] = "[]%s" % (l)
-                elif isinstance(t, list):
-                    #mt = merge_types(t)
-                    pass
-                elif isinstance(t, dict) and t['type'] == "array" and isinstance(t['items'], list):
-                    pass
-                elif isinstance(t, dict) and t['type'] == "record":
-                    fields[fixCaps(k['name'])] = t['name']
-                elif isinstance(t, dict) and t['type'] == "enum":
-                    pass
-                else:
-                    print "missing", t
-        
+    def gen_record_map(self, records):
         kwargs = {
-            "name" : record['name'],
-            "fields" : fields
+            "names" : records.keys()
         }
-        return jinja2.Template(RECORD_TEMPLATE).render(**kwargs)
-    
-    
+        return jinja2.Template(RECORD_MAP_TEMPLATE).render(**kwargs)
+
+
+
 
 if __name__ == "__main__":
 
     with open(sys.argv[1]) as handle:
         doc = json.loads(handle.read())
         schema = Schema(doc)
-        
+
     src = schema.generate()
     print src

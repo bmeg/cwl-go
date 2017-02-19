@@ -4,6 +4,8 @@ export GOPATH
 PATH := ${PATH}:$(shell pwd)/bin
 export PATH
 
+cwl-parser:
+	go install cwl-parser
 
 cwlgo-tool :
 	go install cwlgo-tool
