@@ -61,10 +61,15 @@ func (parser *CWLParser) Parse() (CWLClass, error) {
 }
 
 func NewClass(doc JSONDict, t reflect.Type) (CWLClass, error) {
-  log.Printf("New Class: %s", t)
+  log.Printf("New Class: %s from %s", t, doc)
   o := reflect.New(t)
-  for k, v := range doc {
-    log.Printf("%s = %s", k, v)
+  for i := 0; i < t.NumField(); i++ {
+    f := t.Field(i)
+    if v, ok := doc[ f.Tag.Get("json") ]; ok {
+      log.Printf("%s = %s", f, v)
+    } else {
+      log.Printf("Not found: %s", f)
+    }
   }
   ov := o.Interface()
   return ov.(CWLClass), nil

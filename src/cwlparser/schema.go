@@ -100,6 +100,7 @@ var TYPES = map[string]reflect.Type {
 type CommandInputRecordField struct {
     Doc string   `json:"doc"`
     InputBinding CommandLineBinding   `json:"inputBinding"`
+    Type CommandInputRecordFieldType   `json:""`
     Name string   `json:"name"`
     Label string   `json:"label"`
 }
@@ -111,6 +112,7 @@ type OutputEnumSchema struct {
 }
 
 type CommandInputArraySchema struct {
+    Items CommandInputArraySchemaItems   `json:""`
     InputBinding CommandLineBinding   `json:"inputBinding"`
     Label string   `json:"label"`
 }
@@ -121,9 +123,13 @@ type EnumSchema struct {
 
 type ExpressionToolOutputParameter struct {
     Streamable bool   `json:"streamable"`
-    OutputBinding CommandOutputBinding   `json:"outputBinding"`
-    Id string   `json:"id"`
+    Format ExpressionToolOutputParameterFormat   `json:""`
+    Doc ExpressionToolOutputParameterDoc   `json:""`
     Label string   `json:"label"`
+    OutputBinding CommandOutputBinding   `json:"outputBinding"`
+    SecondaryFiles ExpressionToolOutputParameterSecondaryFiles   `json:""`
+    Type ExpressionToolOutputParameterType   `json:""`
+    Id string   `json:"id"`
 }
 
 func (self *ExpressionToolOutputParameter) GetID() string {
@@ -132,6 +138,8 @@ func (self *ExpressionToolOutputParameter) GetID() string {
 
 type WorkflowStepInput struct {
     Default interface{}   `json:"default"`
+    Source WorkflowStepInputSource   `json:""`
+    ValueFrom WorkflowStepInputValueFrom   `json:""`
     LinkMerge LinkMergeMethod   `json:"linkMerge"`
     Id string   `json:"id"`
 }
@@ -154,6 +162,7 @@ func (self *WorkflowStepOutput) GetID() string {
 }
 
 type OutputArraySchema struct {
+    Items OutputArraySchemaItems   `json:""`
     OutputBinding CommandOutputBinding   `json:"outputBinding"`
     Label string   `json:"label"`
 }
@@ -162,6 +171,7 @@ type CommandLineBinding struct {
     ShellQuote bool   `json:"shellQuote"`
     LoadContents bool   `json:"loadContents"`
     Separate bool   `json:"separate"`
+    ValueFrom CommandLineBindingValueFrom   `json:""`
     Prefix string   `json:"prefix"`
     ItemSeparator string   `json:"itemSeparator"`
     Position int   `json:"position"`
@@ -186,6 +196,7 @@ func (self *Workflow) GetID() string {
 type InputRecordField struct {
     Doc string   `json:"doc"`
     InputBinding CommandLineBinding   `json:"inputBinding"`
+    Type InputRecordFieldType   `json:""`
     Name string   `json:"name"`
     Label string   `json:"label"`
 }
@@ -201,13 +212,19 @@ type CommandOutputEnumSchema struct {
 }
 
 type ArraySchema struct {
+    Items ArraySchemaItems   `json:""`
 }
 
 type WorkflowOutputParameter struct {
     Streamable bool   `json:"streamable"`
-    OutputBinding CommandOutputBinding   `json:"outputBinding"`
-    Label string   `json:"label"`
+    Format WorkflowOutputParameterFormat   `json:""`
+    Doc WorkflowOutputParameterDoc   `json:""`
+    OutputSource WorkflowOutputParameterOutputSource   `json:""`
     LinkMerge LinkMergeMethod   `json:"linkMerge"`
+    Label string   `json:"label"`
+    OutputBinding CommandOutputBinding   `json:"outputBinding"`
+    SecondaryFiles WorkflowOutputParameterSecondaryFiles   `json:""`
+    Type WorkflowOutputParameterType   `json:""`
     Id string   `json:"id"`
 }
 
@@ -217,6 +234,7 @@ func (self *WorkflowOutputParameter) GetID() string {
 
 type RecordField struct {
     Doc string   `json:"doc"`
+    Type RecordFieldType   `json:""`
     Name string   `json:"name"`
 }
 
@@ -236,9 +254,12 @@ type CommandInputRecordSchema struct {
 
 type OutputParameter struct {
     Streamable bool   `json:"streamable"`
-    OutputBinding CommandOutputBinding   `json:"outputBinding"`
-    Id string   `json:"id"`
+    Format OutputParameterFormat   `json:""`
+    Doc OutputParameterDoc   `json:""`
     Label string   `json:"label"`
+    OutputBinding CommandOutputBinding   `json:"outputBinding"`
+    SecondaryFiles OutputParameterSecondaryFiles   `json:""`
+    Id string   `json:"id"`
 }
 
 func (self *OutputParameter) GetID() string {
@@ -252,6 +273,7 @@ type ExpressionTool struct {
     Label string   `json:"label"`
     Doc string   `json:"doc"`
     Id string   `json:"id"`
+    Expression ExpressionToolExpression   `json:""`
     Class string   `json:"class"`
     Hints []interface{}   `json:"hints"`
 }
@@ -261,7 +283,9 @@ func (self *ExpressionTool) GetID() string {
 }
 
 type CommandOutputBinding struct {
+    Glob CommandOutputBindingGlob   `json:""`
     LoadContents bool   `json:"loadContents"`
+    OutputEval CommandOutputBindingOutputEval   `json:""`
 }
 
 type CommandLineTool struct {
@@ -270,8 +294,12 @@ type CommandLineTool struct {
     PermanentFailCodes []int   `json:"permanentFailCodes"`
     Id string   `json:"id"`
     SuccessCodes []int   `json:"successCodes"`
+    Stdout CommandLineToolStdout   `json:""`
     Doc string   `json:"doc"`
+    Stdin CommandLineToolStdin   `json:""`
+    BaseCommand CommandLineToolBaseCommand   `json:""`
     Label string   `json:"label"`
+    Stderr CommandLineToolStderr   `json:""`
     Outputs []CommandOutputParameter   `json:"outputs"`
     TemporaryFailCodes []int   `json:"temporaryFailCodes"`
     Class string   `json:"class"`
@@ -284,9 +312,13 @@ func (self *CommandLineTool) GetID() string {
 
 type CommandOutputParameter struct {
     Streamable bool   `json:"streamable"`
-    OutputBinding CommandOutputBinding   `json:"outputBinding"`
-    Id string   `json:"id"`
+    Format CommandOutputParameterFormat   `json:""`
+    Doc CommandOutputParameterDoc   `json:""`
     Label string   `json:"label"`
+    OutputBinding CommandOutputBinding   `json:"outputBinding"`
+    SecondaryFiles CommandOutputParameterSecondaryFiles   `json:""`
+    Type CommandOutputParameterType   `json:""`
+    Id string   `json:"id"`
 }
 
 func (self *CommandOutputParameter) GetID() string {
@@ -295,6 +327,7 @@ func (self *CommandOutputParameter) GetID() string {
 
 type EnvironmentDef struct {
     EnvName string   `json:"envName"`
+    EnvValue EnvironmentDefEnvValue   `json:""`
 }
 
 type OutputRecordSchema struct {
@@ -309,16 +342,19 @@ type InputEnumSchema struct {
 }
 
 type InputArraySchema struct {
+    Items InputArraySchemaItems   `json:""`
     InputBinding CommandLineBinding   `json:"inputBinding"`
     Label string   `json:"label"`
 }
 
 type WorkflowStep struct {
+    Run WorkflowStepRun   `json:""`
     Doc string   `json:"doc"`
     Label string   `json:"label"`
     In []WorkflowStepInput   `json:"in"`
-    ScatterMethod ScatterMethod   `json:"scatterMethod"`
     Id string   `json:"id"`
+    ScatterMethod ScatterMethod   `json:"scatterMethod"`
+    Scatter WorkflowStepScatter   `json:""`
     Hints []interface{}   `json:"hints"`
 }
 
@@ -327,6 +363,7 @@ func (self *WorkflowStep) GetID() string {
 }
 
 type CommandOutputArraySchema struct {
+    Items CommandOutputArraySchemaItems   `json:""`
     OutputBinding CommandOutputBinding   `json:"outputBinding"`
     Label string   `json:"label"`
 }
@@ -334,6 +371,7 @@ type CommandOutputArraySchema struct {
 type CommandOutputRecordField struct {
     Doc string   `json:"doc"`
     OutputBinding CommandOutputBinding   `json:"outputBinding"`
+    Type CommandOutputRecordFieldType   `json:""`
     Name string   `json:"name"`
 }
 
@@ -351,11 +389,15 @@ type File struct {
 }
 
 type InputParameter struct {
-    Default interface{}   `json:"default"`
     Streamable bool   `json:"streamable"`
     InputBinding CommandLineBinding   `json:"inputBinding"`
-    Id string   `json:"id"`
+    Format InputParameterFormat   `json:""`
+    Default interface{}   `json:"default"`
+    Doc InputParameterDoc   `json:""`
     Label string   `json:"label"`
+    SecondaryFiles InputParameterSecondaryFiles   `json:""`
+    Type InputParameterType   `json:""`
+    Id string   `json:"id"`
 }
 
 func (self *InputParameter) GetID() string {
@@ -365,6 +407,7 @@ func (self *InputParameter) GetID() string {
 type OutputRecordField struct {
     Doc string   `json:"doc"`
     OutputBinding CommandOutputBinding   `json:"outputBinding"`
+    Type OutputRecordFieldType   `json:""`
     Name string   `json:"name"`
 }
 
@@ -380,11 +423,15 @@ type CommandInputEnumSchema struct {
 }
 
 type CommandInputParameter struct {
-    Default interface{}   `json:"default"`
     Streamable bool   `json:"streamable"`
     InputBinding CommandLineBinding   `json:"inputBinding"`
-    Id string   `json:"id"`
+    Format CommandInputParameterFormat   `json:""`
+    Default interface{}   `json:"default"`
+    Doc CommandInputParameterDoc   `json:""`
     Label string   `json:"label"`
+    SecondaryFiles CommandInputParameterSecondaryFiles   `json:""`
+    Type CommandInputParameterType   `json:""`
+    Id string   `json:"id"`
 }
 
 func (self *CommandInputParameter) GetID() string {

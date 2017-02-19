@@ -69,6 +69,16 @@ class Union:
     def add_type(self, typeName, array):
         self.types.append( {"name" : fixCaps(typeName) + "Value", "type" : typeName, "array" : array} )
 
+class Field:
+    def __init__(self, type, name):
+        self.type = type
+        self.name = name
+
+class RecordField:
+    def __init__(self, type, name):
+        self.type = name
+        self.type_list = type
+
 class Record:
     def __init__(self, doc):
         self.doc = doc
@@ -88,23 +98,23 @@ class Record:
             if t in ["string", "boolean", "int", "long", "float", "double", "Any"]:
                 if t in TYPE_MAPPING:
                     t = TYPE_MAPPING[t]
-                fields[fixCaps(k['name'])] = { "type" : t, "name" : k['name'] }
+                fields[fixCaps(k['name'])] = Field(type=t, name=k['name'] )
             else:
                 if isinstance(t, basestring):
                     if k['name'] != "type":
-                        fields[fixCaps(k['name'])] = { "type" : t, "name" : k["name"] }
+                        fields[fixCaps(k['name'])] = Field(type=t, name=k["name"] )
                 elif isinstance(t, dict) and t['type'] == "array" and isinstance(t['items'], basestring):
                     l = t['items']
                     if l in TYPE_MAPPING:
                         l = TYPE_MAPPING[l]
-                    fields[fixCaps(k['name'])] = { "type" : "[]%s" % (l), "name" : k['name']}
+                    fields[fixCaps(k['name'])] = Field(type="[]%s" % (l), name=k['name'])
                 elif isinstance(t, list):
-                    #mt = merge_types(t)
+                    fields[fixCaps(k['name'])] = RecordField(type=t, name="%s%s" % (self.doc['name'], fixCaps(k['name'])) )
                     pass
                 elif isinstance(t, dict) and t['type'] == "array" and isinstance(t['items'], list):
                     pass
                 elif isinstance(t, dict) and t['type'] == "record":
-                    fields[fixCaps(k['name'])] = { "type" : t['name'], "name" : k['name']}
+                    fields[fixCaps(k['name'])] = Field(type=t['name'], name=k['name'])
                 elif isinstance(t, dict) and t['type'] == "enum":
                     pass
                 else:
@@ -160,8 +170,10 @@ import (
             if k not in SKIP:
                 out += self.gen_enum(v)
 
+        """
         for k, v in self.list_union().items():
             out += self.gen_union(v)
+        """
 
         records = self.list_records()
         out += self.gen_record_map(records)
@@ -174,7 +186,7 @@ import (
         out = {}
         for i in self.doc:
             for k, v in self.scan_record_list(i).items():
-                out[k] = Record(v)
+                out[k] = v
         for v in out.values():
             v.extend(out)
         return out
@@ -186,6 +198,7 @@ import (
                 out[i['name']] = i
         return out
 
+    """
     def list_union(self):
         out = {}
         for k, v in self._records.items():
@@ -219,11 +232,12 @@ import (
                                 print "missed", i
                         out[u.name] = u
         return out
+    """
 
     def scan_record_list(self, record):
         out = {}
         if record['type'] == "record":
-            out[record["name"]] = record
+            out[record["name"]] = Record(record)
             for f in record['fields']:
                 for k, v in self.scan_record_list(f):
                     out[k] = v
