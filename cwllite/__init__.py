@@ -1,18 +1,22 @@
 
 import yaml
+import json
 from copy import deepcopy
 from google.protobuf.json_format import ParseDict, MessageToDict
-from .cwl_pb2 import CommandLineTool
+from .cwl_pb2 import CommandLineTool, ExpressionTool, Workflow, GraphRecord
 
-def fields_dict2list(doc, *args):
+def fields_dict2list(doc, *args, **kwargs):
     out = {}
     for k,v in doc.items():
         if k in args:
             if isinstance(v, dict):
                 nv = []
                 for ek, ev in v.items():
-                    i = deepcopy(ev)
-                    i['id'] = ek
+                    if isinstance(ev, basestring) or isinstance(ev, list):
+                        i = {"id" : ek, kwargs["field"]:ev}
+                    else:
+                        i = deepcopy(ev)
+                        i['id'] = ek
                     nv.append(i)
                 out[k] = nv
             else:
@@ -35,10 +39,18 @@ def fields_forcelist(doc, *args):
 
 def prep_TypeRecord(doc):
     if isinstance(doc, basestring):
-        return {"name" : doc}
+        if doc.endswith("[]"):
+            return { "array" : {"items" : prep_TypeRecord(doc[:-2]) } }
+        else:
+            return {"name" : doc}
     if isinstance(doc, dict):
         if doc['type'] == "array":
-            return { "items" : {"type" : prep_TypeRecord(doc['items']) } }
+            return { "array" : {"items" : prep_TypeRecord(doc['items']) } }
+        if doc['type'] == "record":
+            fields = []
+            for i in doc['fields']:
+                fields.append( { "name" : i['name'], "type" : prep_TypeRecord(i['type'])} )
+            return {"record" : { "name" : doc["name"], "fields" : fields } }
     if isinstance(doc, list):
         t = []
         for i in doc:
@@ -46,16 +58,32 @@ def prep_TypeRecord(doc):
         return {"oneof" : {"types" : t}}
     return doc
 
+def prep_DataRecord(doc):
+    if isinstance(doc, basestring):
+        return {"string_value" : doc}
+    if isinstance(doc, dict):
+        return {"struct_value" : doc}
+    if isinstance(doc, list):
+        return {"list_value" : doc}
+    if isinstance(doc, float):
+        return {"float_value" : doc}
+    return doc
+    
 def prep_InputRecordField(doc):
     doc = fields_forcelist(doc, "doc")
     doc['type'] = prep_TypeRecord(doc['type'])
+    if 'default' in doc:
+        doc['default'] = prep_DataRecord(doc['default'])
     return doc
 
 def prep_OutputRecordField(doc):
-    doc = fields_forcelist(doc, "doc")
+    doc = fields_forcelist(doc, "doc", "outputSource")
     doc['type'] = prep_TypeRecord(doc['type'])
     if 'outputBinding' in doc:
         doc['outputBinding'] = prep_CommandOutputBinding(doc['outputBinding'])
+    #if 'outputSource' in doc:
+    #    doc['outputBinding'] = prep_CommandOutputBinding(doc['outputBinding'])
+        
     return doc
 
 def prep_CommandOutputBinding(doc):
@@ -74,27 +102,145 @@ def prep_OutputRecordField_list(doc):
         out.append(prep_OutputRecordField(i))
     return out
 
+def prep_CommandLineBinding(doc):
+    if isinstance(doc, basestring):
+        return {"valueFrom" : doc}
+    return doc
+
+def prep_CommandLineBinding_list(doc):
+    out = []
+    for i in doc:
+        out.append(prep_CommandLineBinding(i))
+    return out
+
+def prep_WorkflowStepOutput(doc):
+    if isinstance(doc, basestring):
+        return {"id" : doc}
+    return doc
+
+def prep_WorkflowStepOutput_list(doc):
+    out = []
+    for i in doc:
+        out.append(prep_WorkflowStepOutput(i))
+    return out
+
+def prep_WorkflowStepInput(doc):
+    #if isinstance(doc, basestring):
+    #    return {"source" : [doc]}
+    doc = fields_forcelist(doc, "source") 
+    return doc
+
+def prep_WorkflowStepInput_list(doc):
+    out = []
+    for i in doc:
+        out.append(prep_WorkflowStepInput(i))
+    return out
+
+def prep_RunRecord(doc):
+    if isinstance(doc, basestring):
+        return {"path" : doc}
+    if isinstance(doc, dict) and "class" in doc:
+        e = prep_doc(doc)
+        if e['class'] == "Workflow":
+            return {"workflow" : e}
+        if e['class'] == "ExpressionTool":
+            return {"expression" : e}
+        if e['class'] == "CommandLineTool":
+            return {"commandline" : e}
+    return doc
+
+def prep_WorkflowStep(doc):
+    doc = fields_forcelist(doc, "scatter")
+    if "out" in doc:
+        doc["out"] = prep_WorkflowStepOutput_list(doc["out"])
+    if "run" in doc:
+        doc["run"] = prep_RunRecord(doc["run"])
+    if "in" in doc:
+        doc = fields_dict2list(doc, "in", field="source")
+        doc["in"] = prep_WorkflowStepInput_list(doc["in"])
+        
+    return doc
+
+def prep_WorkflowStep_list(doc):
+    out = []
+    for i in doc:
+        out.append(prep_WorkflowStep(i))
+    return out
+    
+
 def prep_CommandLineTool(doc):
-    doc = fields_dict2list(doc, "inputs", "outputs", "hints")
+    doc = fields_dict2list(doc, "inputs", "outputs", "hints", "requirements", field="type")
     doc = fields_forcelist(doc, "baseCommand", "doc")
-    doc['inputs'] = prep_InputRecordField_list(doc['inputs'])
-    doc['outputs'] = prep_OutputRecordField_list(doc['outputs'])
+    if 'inputs' in doc:
+        doc['inputs'] = prep_InputRecordField_list(doc['inputs'])
+    if 'outputs' in doc:
+        doc['outputs'] = prep_OutputRecordField_list(doc['outputs'])
+    if 'arguments' in doc:
+        doc['arguments'] = prep_CommandLineBinding_list(doc['arguments'])
+    return doc
+
+
+def prep_ExpressionTool(doc):
+    doc = fields_dict2list(doc, "inputs", "outputs", "hints", field="type")
+    doc = fields_forcelist(doc, "baseCommand", "doc")
+    if 'inputs' in doc:
+        doc['inputs'] = prep_InputRecordField_list(doc['inputs'])
+    if 'outputs' in doc:
+        doc['outputs'] = prep_OutputRecordField_list(doc['outputs'])
+    return doc
+
+def prep_Workflow(doc):
+    doc = fields_dict2list(doc, "inputs", "outputs", "hints", "requirements", "steps", field="type")
+    if 'inputs' in doc:
+        doc['inputs'] = prep_InputRecordField_list(doc['inputs'])
+    if 'outputs' in doc:
+        doc['outputs'] = prep_OutputRecordField_list(doc['outputs'])
+    if 'steps' in doc:
+        doc['steps'] = prep_WorkflowStep_list(doc['steps'])
     return doc
 
 MUTATORS = {
     "CommandLineTool" : prep_CommandLineTool
 }
 
+def prep_doc(doc):
+    if doc['class'] == "CommandLineTool":
+        doc = prep_CommandLineTool(doc)
+    if doc['class'] == "ExpressionTool":
+        doc = prep_ExpressionTool(doc)
+    if doc['class'] == "Workflow":
+        doc = prep_Workflow(doc)
+    #print json.dumps(doc, indent=4)
+    return doc
+
 def load(path):
     with open(path) as handle:
         data = handle.read()
         doc = yaml.load(data)
-
-    if doc['class'] == "CommandLineTool":
-        doc = prep_CommandLineTool(doc)
-        out = CommandLineTool()
-        print doc
+    
+    if "$graph" in doc:
+        graph = []
+        for idoc in doc["$graph"]:
+            idoc = prep_doc(idoc)
+            if idoc['class'] == "CommandLineTool":
+                graph.append( {"commandline" : idoc} )
+            if idoc['class'] == "ExpressionTool":
+                graph.append( {"expression" : idoc} )
+            if idoc['class'] == "Workflow":
+                graph.append( {"workflow" : idoc} )
+        newdoc = { "cwlVersion" : doc['cwlVersion'], "graph" : graph }
+        out = GraphRecord()
+        ParseDict(newdoc, out)
+    else:
+        doc = prep_doc(doc)
+        if doc['class'] == "CommandLineTool":
+            out = CommandLineTool()
+        if doc['class'] == "ExpressionTool":
+            out = ExpressionTool()
+        if doc['class'] == "Workflow":
+            out = Workflow()
         ParseDict(doc, out)
+    
     return out
 
 def to_dict(pb):

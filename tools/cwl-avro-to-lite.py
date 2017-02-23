@@ -11,7 +11,8 @@ SKIP = [
     "CommandInputArraySchema",
     "OutputArraySchema",
     "InputArraySchema",
-    "CommandOutputArraySchema"
+    "CommandOutputArraySchema",
+    "SchemaDefRequirement"
 ]
 
 MESSAGE_TEMPLATE = """
@@ -35,6 +36,9 @@ TYPE_MAPPING = {
 }
 
 FIELD_FIX = {
+    "Workflow" : {
+        "requirements" : "repeated google.protobuf.Struct"
+    },
     "WorkflowStepInput" : {
         "source" : "repeated string"
     },
@@ -42,7 +46,8 @@ FIELD_FIX = {
         "outputSource" : "repeated string"
     },
     "ExpressionTool" : {
-        "expression" : "string"
+        "expression" : "string",
+        "requirements" : "repeated google.protobuf.Struct"
     },
     "CommandOutputBinding" : {
         "glob" : "repeated string",
@@ -53,10 +58,17 @@ FIELD_FIX = {
         "stdin" : "string",
         "stderr" : "string",
         "baseCommand" : "repeated string",
+        "requirements" : "repeated google.protobuf.Struct",
+        "arguments" : "repeated CommandLineBinding"
+    },
+    "CommandInputParameter" : {
+        "default" : "DataRecord"
     },
     "WorkflowStep" : {
         "run" : "RunRecord",
-        "scatter" : "repeated string"
+        "scatter" : "repeated string",
+        "requirements" : "repeated google.protobuf.Struct",
+        "out" : "repeated WorkflowStepOutput"
     },
     "EnvironmentDef" : {
         "envValue" : "string"
@@ -130,7 +142,7 @@ class Record:
                         tname = FIELD_FIX[self.doc['name']][k['name']]
                     elif k['name'] in FIELD_FIX["*"]:
                         tname = FIELD_FIX["*"][k['name']]
-                    #fields[k['name']] = Field(type="repeated " + tname, name=k['name'], comment=str(t))
+                    fields[k['name']] = Field(type=tname, name=k['name'], comment=str(t))
                 elif isinstance(t, dict) and t['type'] == "record":
                     fields[k['name']] = Field(type=t['name'], name=k['name'])
                 elif isinstance(t, dict) and t['type'] == "enum":
@@ -180,7 +192,17 @@ syntax = "proto3";
 import "google/protobuf/struct.proto";
 
 message ArrayRecord {
-    TypeRecord type = 1;
+    TypeRecord items = 1;
+}
+
+message FieldRecord {
+    string name = 1;
+    TypeRecord type = 2;
+}
+
+message RecordRecord {
+    string name = 1;
+    repeated FieldRecord fields = 2;
 }
 
 message OneOfRecord {
@@ -190,20 +212,44 @@ message OneOfRecord {
 message TypeRecord {
     oneof type {
         string name = 1;
-        ArrayRecord items = 2;
+        ArrayRecord array = 2;
         OneOfRecord oneof = 3;
+        RecordRecord record = 4;
     }
 }
 
 message RunRecord {
     oneof run {
         string path = 1;
-        CommandLineTool tool = 2;
+        CommandLineTool commandline = 2;
         ExpressionTool expression = 3;
         Workflow workflow = 4;
     }
 }
 
+message DataRecord {
+    oneof data {
+        string string_value = 1;
+        google.protobuf.Struct struct_value = 2;
+        double float_value = 3;
+        int64 int_value = 4;
+        google.protobuf.ListValue list_value = 5;
+        bool bool_value = 6;
+    }
+}
+
+message CWLClass {
+    oneof class {
+        Workflow workflow = 1;
+        CommandLineTool commandline = 2;
+        ExpressionTool expression = 3;
+    }
+}
+
+message GraphRecord {
+    string cwlVersion = 1;
+    repeated CWLClass graph = 2;
+}
 """
         records = self.list_records()
         for k, v in records.items():
