@@ -1,0 +1,296 @@
+
+syntax = "proto3";
+
+import "google/protobuf/struct.proto";
+
+message ArrayRecord {
+    TypeRecord type = 1;
+}
+
+message OneOfRecord {
+    repeated TypeRecord types = 1;
+}
+
+message TypeRecord {
+    oneof type {
+        string name = 1;
+        ArrayRecord items = 2;
+        OneOfRecord oneof = 3;
+    }
+}
+
+message RunRecord {
+    oneof run {
+        string path = 1;
+        CommandLineTool tool = 2;
+        ExpressionTool expression = 3;
+        Workflow workflow = 4;
+    }
+}
+
+
+message CommandInputRecordField {
+    repeated string doc = 1; 
+    CommandLineBinding inputBinding = 2; 
+    TypeRecord type = 3; //[u'PrimitiveType', {u'fields': [{u'doc': u'Defines the fields of the record.', u'jsonldPredicate': {u'_id': u'https://w3id.org/cwl/salad#fields', u'mapSubject': u'name', u'mapPredicate': u'type'}, u'type': [u'null', {u'items': u'RecordField', u'type': u'array'}], u'name': u'fields'}, {u'doc': u'Must be `record`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'record'], u'type': u'enum', u'name': u'Record_symbol'}, u'name': u'type'}], u'type': u'record', u'name': u'RecordSchema'}, {u'doc': u'Define an enumerated type.\n', u'type': u'record', u'name': u'EnumSchema', u'fields': [{u'doc': u'Defines the set of valid symbols.', u'jsonldPredicate': {u'_type': u'@id', u'_id': u'https://w3id.org/cwl/salad#symbols', u'identity': True}, u'type': {u'items': u'string', u'type': u'array'}, u'name': u'symbols'}, {u'doc': u'Must be `enum`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'enum'], u'type': u'enum', u'name': u'Enum_symbol'}, u'name': u'type'}]}, {u'fields': [{u'doc': u'Defines the type of the array elements.', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#items'}, u'type': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string', {u'items': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string'], u'type': u'array'}], u'name': u'items'}, {u'doc': u'Must be `array`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'array'], u'type': u'enum', u'name': u'Array_symbol'}, u'name': u'type'}], u'type': u'record', u'name': u'ArraySchema'}, u'string', {u'items': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string'], u'type': u'array'}]
+    string name = 4; 
+    string label = 5; 
+}
+
+message EnumSchema {
+    repeated string symbols = 1; 
+}
+
+message ExpressionToolOutputParameter {
+    bool streamable = 1; 
+    repeated string format = 2; //[u'string', {u'items': u'string', u'type': u'array'}, u'Expression']
+    repeated string doc = 3; //[u'string', {u'items': u'string', u'type': u'array'}]
+    string label = 4; 
+    CommandOutputBinding outputBinding = 5; 
+    repeated string secondaryFiles = 6; //[u'string', u'Expression', {u'items': [u'string', u'Expression'], u'type': u'array'}]
+    TypeRecord type = 7; //[u'CWLType', u'OutputRecordSchema', u'OutputEnumSchema', u'OutputArraySchema', u'string', {u'items': [u'CWLType', u'OutputRecordSchema', u'OutputEnumSchema', u'OutputArraySchema', u'string'], u'type': u'array'}]
+    string id = 8; 
+}
+
+message WorkflowStepInput {
+    google.protobuf.Struct default = 1; 
+    repeated string source = 2; //[u'string', {u'items': u'string', u'type': u'array'}]
+    string valueFrom = 3; //[u'string', u'Expression']
+    string linkMerge = 4; 
+    string id = 5; 
+}
+
+message InputRecordSchema {
+    repeated RecordField fields = 1; 
+    string label = 2; 
+}
+
+message WorkflowStepOutput {
+    string id = 1; 
+}
+
+message CommandLineBinding {
+    bool shellQuote = 1; 
+    bool loadContents = 2; 
+    bool separate = 3; 
+    string valueFrom = 4; //[u'string', u'Expression']
+    string prefix = 5; 
+    string itemSeparator = 6; 
+    int64 position = 7; 
+}
+
+message Workflow {
+    string cwlVersion = 1; 
+    repeated InputParameter inputs = 2; 
+    repeated string doc = 3; 
+    string class = 4; 
+    string label = 5; 
+    repeated WorkflowStep steps = 6; 
+    repeated WorkflowOutputParameter outputs = 7; 
+    string id = 8; 
+    repeated google.protobuf.Struct hints = 9; 
+}
+
+message InputRecordField {
+    repeated string doc = 1; 
+    CommandLineBinding inputBinding = 2; 
+    TypeRecord type = 3; //[u'PrimitiveType', {u'fields': [{u'doc': u'Defines the fields of the record.', u'jsonldPredicate': {u'_id': u'https://w3id.org/cwl/salad#fields', u'mapSubject': u'name', u'mapPredicate': u'type'}, u'type': [{u'items': u'RecordField', u'type': u'array'}], u'name': u'fields'}, {u'doc': u'Must be `record`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'record'], u'type': u'enum', u'name': u'Record_symbol'}, u'name': u'type'}], u'type': u'record', u'name': u'RecordSchema'}, {u'doc': u'Define an enumerated type.\n', u'type': u'record', u'name': u'EnumSchema', u'fields': [{u'doc': u'Defines the set of valid symbols.', u'jsonldPredicate': {u'_type': u'@id', u'_id': u'https://w3id.org/cwl/salad#symbols', u'identity': True}, u'type': {u'items': u'string', u'type': u'array'}, u'name': u'symbols'}, {u'doc': u'Must be `enum`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'enum'], u'type': u'enum', u'name': u'Enum_symbol'}, u'name': u'type'}]}, {u'fields': [{u'doc': u'Defines the type of the array elements.', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#items'}, u'type': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string', {u'items': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string'], u'type': u'array'}], u'name': u'items'}, {u'doc': u'Must be `array`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'array'], u'type': u'enum', u'name': u'Array_symbol'}, u'name': u'type'}], u'type': u'record', u'name': u'ArraySchema'}, u'string', {u'items': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string'], u'type': u'array'}]
+    string name = 4; 
+    string label = 5; 
+}
+
+message SchemaDefRequirement {
+    string class = 1; 
+}
+
+message CommandOutputEnumSchema {
+    repeated string symbols = 1; 
+    CommandOutputBinding outputBinding = 2; 
+    string label = 3; 
+}
+
+message OutputEnumSchema {
+    repeated string symbols = 1; 
+    CommandOutputBinding outputBinding = 2; 
+    string label = 3; 
+}
+
+message WorkflowOutputParameter {
+    bool streamable = 1; 
+    repeated string format = 2; //[u'string', {u'items': u'string', u'type': u'array'}, u'Expression']
+    repeated string doc = 3; //[u'string', {u'items': u'string', u'type': u'array'}]
+    repeated string outputSource = 4; //[u'string', {u'items': u'string', u'type': u'array'}]
+    string linkMerge = 5; 
+    string label = 6; 
+    CommandOutputBinding outputBinding = 7; 
+    repeated string secondaryFiles = 8; //[u'string', u'Expression', {u'items': [u'string', u'Expression'], u'type': u'array'}]
+    TypeRecord type = 9; //[u'CWLType', u'OutputRecordSchema', u'OutputEnumSchema', u'OutputArraySchema', u'string', {u'items': [u'CWLType', u'OutputRecordSchema', u'OutputEnumSchema', u'OutputArraySchema', u'string'], u'type': u'array'}]
+    string id = 10; 
+}
+
+message RecordField {
+    repeated string doc = 1; 
+    TypeRecord type = 2; //[u'PrimitiveType', {u'fields': [{u'doc': u'Defines the fields of the record.', u'jsonldPredicate': {u'_id': u'https://w3id.org/cwl/salad#fields', u'mapSubject': u'name', u'mapPredicate': u'type'}, u'type': [{u'items': u'RecordField', u'type': u'array'}], u'name': u'fields'}, {u'doc': u'Must be `record`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'record'], u'type': u'enum', u'name': u'Record_symbol'}, u'name': u'type'}], u'type': u'record', u'name': u'RecordSchema'}, {u'doc': u'Define an enumerated type.\n', u'type': u'record', u'name': u'EnumSchema', u'fields': [{u'doc': u'Defines the set of valid symbols.', u'jsonldPredicate': {u'_type': u'@id', u'_id': u'https://w3id.org/cwl/salad#symbols', u'identity': True}, u'type': {u'items': u'string', u'type': u'array'}, u'name': u'symbols'}, {u'doc': u'Must be `enum`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'enum'], u'type': u'enum', u'name': u'Enum_symbol'}, u'name': u'type'}]}, {u'fields': [{u'doc': u'Defines the type of the array elements.', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#items'}, u'type': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string', {u'items': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string'], u'type': u'array'}], u'name': u'items'}, {u'doc': u'Must be `array`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'array'], u'type': u'enum', u'name': u'Array_symbol'}, u'name': u'type'}], u'type': u'record', u'name': u'ArraySchema'}, u'string', {u'items': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string'], u'type': u'array'}]
+    string name = 3; 
+}
+
+message InlineJavascriptRequirement {
+    string class = 1; 
+    repeated string expressionLib = 2; 
+}
+
+message RecordSchema {
+    repeated RecordField fields = 1; 
+}
+
+message CommandInputRecordSchema {
+    repeated RecordField fields = 1; 
+    string label = 2; 
+}
+
+message OutputParameter {
+    bool streamable = 1; 
+    repeated string format = 2; //[u'string', {u'items': u'string', u'type': u'array'}, u'Expression']
+    repeated string doc = 3; //[u'string', {u'items': u'string', u'type': u'array'}]
+    string label = 4; 
+    CommandOutputBinding outputBinding = 5; 
+    repeated string secondaryFiles = 6; //[u'string', u'Expression', {u'items': [u'string', u'Expression'], u'type': u'array'}]
+    string id = 7; 
+}
+
+message ExpressionTool {
+    string cwlVersion = 1; 
+    repeated InputParameter inputs = 2; 
+    repeated string doc = 3; 
+    string class = 4; 
+    string label = 5; 
+    repeated ExpressionToolOutputParameter outputs = 6; 
+    string expression = 7; //[u'string', u'Expression']
+    string id = 8; 
+    repeated google.protobuf.Struct hints = 9; 
+}
+
+message CommandOutputBinding {
+    repeated string glob = 1; //[u'string', u'Expression', {u'items': u'string', u'type': u'array'}]
+    bool loadContents = 2; 
+    string outputEval = 3; //[u'string', u'Expression']
+}
+
+message CommandLineTool {
+    string cwlVersion = 1; 
+    repeated CommandInputParameter inputs = 2; 
+    repeated int64 permanentFailCodes = 3; 
+    repeated int64 successCodes = 4; 
+    string stdout = 5; //[u'string', u'Expression']
+    repeated string doc = 6; 
+    string class = 7; 
+    string stdin = 8; //[u'string', u'Expression']
+    repeated string baseCommand = 9; //[u'string', {u'items': u'string', u'type': u'array'}]
+    string label = 10; 
+    string stderr = 11; //[u'string', u'Expression']
+    repeated CommandOutputParameter outputs = 12; 
+    repeated int64 temporaryFailCodes = 13; 
+    string id = 14; 
+    repeated google.protobuf.Struct hints = 15; 
+}
+
+message CommandOutputParameter {
+    bool streamable = 1; 
+    repeated string format = 2; //[u'string', {u'items': u'string', u'type': u'array'}, u'Expression']
+    repeated string doc = 3; //[u'string', {u'items': u'string', u'type': u'array'}]
+    string label = 4; 
+    CommandOutputBinding outputBinding = 5; 
+    repeated string secondaryFiles = 6; //[u'string', u'Expression', {u'items': [u'string', u'Expression'], u'type': u'array'}]
+    TypeRecord type = 7; //[u'CWLType', {u'symbols': [u'stdout'], u'doc': u'Only valid as a `type` for a `CommandLineTool` output with no\n`outputBinding` set.\n\nThe following\n```\noutputs:\n   an_output_name:\n   type: stdout\n\nstdout: a_stdout_file\n```\nis equivalent to\n```\noutputs:\n  an_output_name:\n    type: File\n    streamable: true\n    outputBinding:\n      glob: a_stdout_file\n\nstdout: a_stdout_file\n```\n\nIf there is no `stdout` name provided, a random filename will be created.\nFor example, the following\n```\noutputs:\n  an_output_name:\n    type: stdout\n```\nis equivalent to\n```\noutputs:\n  an_output_name:\n    type: File\n    streamable: true\n    outputBinding:\n      glob: random_stdout_filenameABCDEFG\n\nstdout: random_stdout_filenameABCDEFG\n```\n', u'docParent': u'https://w3id.org/cwl/cwl#CommandOutputParameter', u'type': u'enum', u'name': u'stdout'}, {u'symbols': [u'stderr'], u'doc': u'Only valid as a `type` for a `CommandLineTool` output with no\n`outputBinding` set.\n\nThe following\n```\noutputs:\n  an_output_name:\n  type: stderr\n\nstderr: a_stderr_file\n```\nis equivalent to\n```\noutputs:\n  an_output_name:\n    type: File\n    streamable: true\n    outputBinding:\n      glob: a_stderr_file\n\nstderr: a_stderr_file\n```\n\nIf there is no `stderr` name provided, a random filename will be created.\nFor example, the following\n```\noutputs:\n  an_output_name:\n    type: stderr\n```\nis equivalent to\n```\noutputs:\n  an_output_name:\n    type: File\n    streamable: true\n    outputBinding:\n      glob: random_stderr_filenameABCDEFG\n\nstderr: random_stderr_filenameABCDEFG\n```\n', u'docParent': u'https://w3id.org/cwl/cwl#CommandOutputParameter', u'type': u'enum', u'name': u'stderr'}, u'CommandOutputRecordSchema', u'CommandOutputEnumSchema', u'CommandOutputArraySchema', u'string', {u'items': [u'CWLType', u'CommandOutputRecordSchema', u'CommandOutputEnumSchema', u'CommandOutputArraySchema', u'string'], u'type': u'array'}]
+    string id = 8; 
+}
+
+message EnvironmentDef {
+    string envName = 1; 
+    string envValue = 2; //[u'string', u'Expression']
+}
+
+message OutputRecordSchema {
+    repeated RecordField fields = 1; 
+    string label = 2; 
+}
+
+message InputEnumSchema {
+    repeated string symbols = 1; 
+    CommandLineBinding inputBinding = 2; 
+    string label = 3; 
+}
+
+message WorkflowStep {
+    RunRecord run = 1; //[u'string', u'CommandLineTool', u'ExpressionTool', {u'name': u'Workflow', u'doc': u'A workflow describes a set of **steps** and the **dependencies** between\nthose steps.  When a step produces output that will be consumed by a\nsecond step, the first step is a dependency of the second step.\n\nWhen there is a dependency, the workflow engine must execute the preceeding\nstep and wait for it to successfully produce output before executing the\ndependent step.  If two steps are defined in the workflow graph that\nare not directly or indirectly dependent, these steps are **independent**,\nand may execute in any order or execute concurrently.  A workflow is\ncomplete when all steps have been executed.\n\nDependencies between parameters are expressed using the `source` field on\n[workflow step input parameters](#WorkflowStepInput) and [workflow output\nparameters](#WorkflowOutputParameter).\n\nThe `source` field expresses the dependency of one parameter on another\nsuch that when a value is associated with the parameter specified by\n`source`, that value is propagated to the destination parameter.  When all\ndata links inbound to a given step are fufilled, the step is ready to\nexecute.\n\n## Workflow success and failure\n\nA completed step must result in one of `success`, `temporaryFailure` or\n`permanentFailure` states.  An implementation may choose to retry a step\nexecution which resulted in `temporaryFailure`.  An implementation may\nchoose to either continue running other steps of a workflow, or terminate\nimmediately upon `permanentFailure`.\n\n* If any step of a workflow execution results in `permanentFailure`, then\nthe workflow status is `permanentFailure`.\n\n* If one or more steps result in `temporaryFailure` and all other steps\ncomplete `success` or are not executed, then the workflow status is\n`temporaryFailure`.\n\n* If all workflow steps are executed and complete with `success`, then the\nworkflow status is `success`.\n\n# Extensions\n\n[ScatterFeatureRequirement](#ScatterFeatureRequirement) and\n[SubworkflowFeatureRequirement](#SubworkflowFeatureRequirement) are\navailable as standard [extensions](#Extensions_and_Metadata) to core\nworkflow semantics.\n', u'extends': u'https://w3id.org/cwl/cwl#Process', u'documentRoot': True, u'specialize': [{u'specializeFrom': u'https://w3id.org/cwl/cwl#OutputParameter', u'specializeTo': u'https://w3id.org/cwl/cwl#WorkflowOutputParameter'}], u'type': u'record', u'fields': [{u'doc': u'The unique identifier for this process object.', u'jsonldPredicate': u'@id', u'type': [u'string'], u'name': u'id', u'inherited_from': u'https://w3id.org/cwl/cwl#Process'}, {u'doc': u'Defines the input parameters of the process.  The process is ready to\nrun when all required input parameters are associated with concrete\nvalues.  Input parameters include a schema for each parameter which is\nused to validate the input object.  It may also be used to build a user\ninterface for constructing the input object.\n', u'jsonldPredicate': {u'_id': u'https://w3id.org/cwl/cwl#inputs', u'mapSubject': u'id', u'mapPredicate': u'type'}, u'type': {u'items': u'InputParameter', u'type': u'array'}, u'name': u'inputs', u'inherited_from': u'https://w3id.org/cwl/cwl#Process'}, {u'doc': u'Defines the parameters representing the output of the process.  May be\nused to generate and/or validate the output object.\n', u'jsonldPredicate': {u'_id': u'https://w3id.org/cwl/cwl#outputs', u'mapSubject': u'id', u'mapPredicate': u'type'}, u'type': {u'items': u'WorkflowOutputParameter', u'type': u'array'}, u'name': u'outputs', u'inherited_from': u'https://w3id.org/cwl/cwl#Process'}, {u'doc': u'Declares requirements that apply to either the runtime environment or the\nworkflow engine that must be met in order to execute this process.  If\nan implementation cannot satisfy all requirements, or a requirement is\nlisted which is not recognized by the implementation, it is a fatal\nerror and the implementation must not attempt to run the process,\nunless overridden at user option.\n', u'jsonldPredicate': {u'_id': u'https://w3id.org/cwl/cwl#requirements', u'mapSubject': u'class'}, u'type': [{u'items': [u'InlineJavascriptRequirement', u'SchemaDefRequirement', u'DockerRequirement', u'SoftwareRequirement', u'InitialWorkDirRequirement', u'EnvVarRequirement', u'ShellCommandRequirement', u'ResourceRequirement', u'SubworkflowFeatureRequirement', u'ScatterFeatureRequirement', u'MultipleInputFeatureRequirement', u'StepInputExpressionRequirement'], u'type': u'array'}], u'name': u'requirements', u'inherited_from': u'https://w3id.org/cwl/cwl#Process'}, {u'doc': u'Declares hints applying to either the runtime environment or the\nworkflow engine that may be helpful in executing this process.  It is\nnot an error if an implementation cannot satisfy all hints, however\nthe implementation may report a warning.\n', u'jsonldPredicate': {u'noLinkCheck': True, u'_id': u'https://w3id.org/cwl/cwl#hints', u'mapSubject': u'class'}, u'type': [{u'items': u'Any', u'type': u'array'}], u'name': u'hints', u'inherited_from': u'https://w3id.org/cwl/cwl#Process'}, {u'doc': u'A short, human-readable label of this process object.', u'jsonldPredicate': u'rdfs:label', u'type': [u'string'], u'name': u'label', u'inherited_from': u'https://w3id.org/cwl/cwl#Process'}, {u'doc': u'A long, human-readable description of this process object.', u'jsonldPredicate': u'rdfs:comment', u'type': [u'string'], u'name': u'doc', u'inherited_from': u'https://w3id.org/cwl/cwl#Process'}, {u'doc': u'CWL document version. Always required at the document root. Not\nrequired for a Process embedded inside another Process.\n', u'jsonldPredicate': {u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/cwl#cwlVersion'}, u'type': [u'CWLVersion'], u'name': u'cwlVersion', u'inherited_from': u'https://w3id.org/cwl/cwl#Process'}, {u'jsonldPredicate': {u'_type': u'@vocab', u'_id': u'@type'}, u'type': u'string', u'name': u'class'}, {u'doc': u'The individual steps that make up the workflow.  Each step is executed when all of its\ninput data links are fufilled.  An implementation may choose to execute\nthe steps in a different order than listed and/or execute steps\nconcurrently, provided that dependencies between steps are met.\n', u'jsonldPredicate': {u'mapSubject': u'id'}, u'type': [{u'items': u'WorkflowStep', u'type': u'array'}], u'name': u'steps'}]}]
+    repeated string doc = 2; 
+    string label = 3; 
+    repeated WorkflowStepInput in = 4; 
+    repeated string scatter = 5; //[u'string', {u'items': u'string', u'type': u'array'}]
+    string scatterMethod = 6; 
+    string id = 7; 
+    repeated google.protobuf.Struct hints = 8; 
+}
+
+message CommandOutputRecordField {
+    repeated string doc = 1; 
+    CommandOutputBinding outputBinding = 2; 
+    TypeRecord type = 3; //[u'PrimitiveType', {u'fields': [{u'doc': u'Defines the fields of the record.', u'jsonldPredicate': {u'_id': u'https://w3id.org/cwl/salad#fields', u'mapSubject': u'name', u'mapPredicate': u'type'}, u'type': [{u'items': u'RecordField', u'type': u'array'}], u'name': u'fields'}, {u'doc': u'Must be `record`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'record'], u'type': u'enum', u'name': u'Record_symbol'}, u'name': u'type'}], u'type': u'record', u'name': u'RecordSchema'}, {u'doc': u'Define an enumerated type.\n', u'type': u'record', u'name': u'EnumSchema', u'fields': [{u'doc': u'Defines the set of valid symbols.', u'jsonldPredicate': {u'_type': u'@id', u'_id': u'https://w3id.org/cwl/salad#symbols', u'identity': True}, u'type': {u'items': u'string', u'type': u'array'}, u'name': u'symbols'}, {u'doc': u'Must be `enum`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'enum'], u'type': u'enum', u'name': u'Enum_symbol'}, u'name': u'type'}]}, {u'fields': [{u'doc': u'Defines the type of the array elements.', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#items'}, u'type': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string', {u'items': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string'], u'type': u'array'}], u'name': u'items'}, {u'doc': u'Must be `array`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'array'], u'type': u'enum', u'name': u'Array_symbol'}, u'name': u'type'}], u'type': u'record', u'name': u'ArraySchema'}, u'string', {u'items': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string'], u'type': u'array'}]
+    string name = 4; 
+}
+
+message File {
+    repeated string format = 1; 
+    string checksum = 2; 
+    string basename = 3; 
+    string nameext = 4; 
+    string nameroot = 5; 
+    string location = 6; 
+    string path = 7; 
+    string dirname = 8; 
+    string contents = 9; 
+    int64 size = 10; 
+}
+
+message InputParameter {
+    bool streamable = 1; 
+    CommandLineBinding inputBinding = 2; 
+    repeated string format = 3; //[u'string', {u'items': u'string', u'type': u'array'}, u'Expression']
+    google.protobuf.Struct default = 4; 
+    repeated string doc = 5; //[u'string', {u'items': u'string', u'type': u'array'}]
+    string label = 6; 
+    repeated string secondaryFiles = 7; //[u'string', u'Expression', {u'items': [u'string', u'Expression'], u'type': u'array'}]
+    TypeRecord type = 8; //[u'CWLType', u'InputRecordSchema', u'InputEnumSchema', u'InputArraySchema', u'string', {u'items': [u'CWLType', u'InputRecordSchema', u'InputEnumSchema', u'InputArraySchema', u'string'], u'type': u'array'}]
+    string id = 9; 
+}
+
+message OutputRecordField {
+    repeated string doc = 1; 
+    CommandOutputBinding outputBinding = 2; 
+    TypeRecord type = 3; //[u'PrimitiveType', {u'fields': [{u'doc': u'Defines the fields of the record.', u'jsonldPredicate': {u'_id': u'https://w3id.org/cwl/salad#fields', u'mapSubject': u'name', u'mapPredicate': u'type'}, u'type': [{u'items': u'RecordField', u'type': u'array'}], u'name': u'fields'}, {u'doc': u'Must be `record`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'record'], u'type': u'enum', u'name': u'Record_symbol'}, u'name': u'type'}], u'type': u'record', u'name': u'RecordSchema'}, {u'doc': u'Define an enumerated type.\n', u'type': u'record', u'name': u'EnumSchema', u'fields': [{u'doc': u'Defines the set of valid symbols.', u'jsonldPredicate': {u'_type': u'@id', u'_id': u'https://w3id.org/cwl/salad#symbols', u'identity': True}, u'type': {u'items': u'string', u'type': u'array'}, u'name': u'symbols'}, {u'doc': u'Must be `enum`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'enum'], u'type': u'enum', u'name': u'Enum_symbol'}, u'name': u'type'}]}, {u'fields': [{u'doc': u'Defines the type of the array elements.', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#items'}, u'type': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string', {u'items': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string'], u'type': u'array'}], u'name': u'items'}, {u'doc': u'Must be `array`', u'jsonldPredicate': {u'refScope': 2, u'_type': u'@vocab', u'_id': u'https://w3id.org/cwl/salad#type', u'typeDSL': True}, u'type': {u'symbols': [u'array'], u'type': u'enum', u'name': u'Array_symbol'}, u'name': u'type'}], u'type': u'record', u'name': u'ArraySchema'}, u'string', {u'items': [u'PrimitiveType', u'RecordSchema', u'EnumSchema', u'ArraySchema', u'string'], u'type': u'array'}]
+    string name = 4; 
+}
+
+message CommandOutputRecordSchema {
+    repeated RecordField fields = 1; 
+    string label = 2; 
+}
+
+message CommandInputEnumSchema {
+    repeated string symbols = 1; 
+    CommandLineBinding inputBinding = 2; 
+    string label = 3; 
+}
+
+message CommandInputParameter {
+    bool streamable = 1; 
+    CommandLineBinding inputBinding = 2; 
+    repeated string format = 3; //[u'string', {u'items': u'string', u'type': u'array'}, u'Expression']
+    google.protobuf.Struct default = 4; 
+    repeated string doc = 5; //[u'string', {u'items': u'string', u'type': u'array'}]
+    string label = 6; 
+    repeated string secondaryFiles = 7; //[u'string', u'Expression', {u'items': [u'string', u'Expression'], u'type': u'array'}]
+    TypeRecord type = 8; //[u'CWLType', u'InputRecordSchema', u'InputEnumSchema', u'InputArraySchema', u'string', {u'items': [u'CWLType', u'InputRecordSchema', u'InputEnumSchema', u'InputArraySchema', u'string'], u'type': u'array'}]
+    string id = 9; 
+}
+
