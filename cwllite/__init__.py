@@ -1,8 +1,10 @@
 
+import os
 import yaml
+import sys
 import json
 from copy import deepcopy
-from google.protobuf.json_format import ParseDict, MessageToDict
+from google.protobuf.json_format import ParseDict, MessageToDict, ParseError
 from .cwl_pb2 import CommandLineTool, ExpressionTool, Workflow, GraphRecord
 
 def fields_dict2list(doc, *args, **kwargs):
@@ -51,6 +53,8 @@ def prep_TypeRecord(doc):
             for i in doc['fields']:
                 fields.append( { "name" : i['name'], "type" : prep_TypeRecord(i['type'])} )
             return {"record" : { "name" : doc["name"], "fields" : fields } }
+        if doc['type'] == "enum":
+            return {"enum" : {"name" : doc["name"], "symbols" : doc['symbols'] }}
     if isinstance(doc, list):
         t = []
         for i in doc:
@@ -67,6 +71,8 @@ def prep_DataRecord(doc):
         return {"list_value" : doc}
     if isinstance(doc, float):
         return {"float_value" : doc}
+    if isinstance(doc, int):
+        return {"int_value" : doc}
     return doc
     
 def prep_InputRecordField(doc):
@@ -199,6 +205,33 @@ def prep_Workflow(doc):
         doc['steps'] = prep_WorkflowStep_list(doc['steps'])
     return doc
 
+def resolve_Workflow(doc, doc_path, loaded_classes):
+    if 'steps' in doc:
+        for i in doc['steps']:
+            if 'path' in i['run']:
+                if i['run']['path'].startswith("#"):
+                    found = None
+                    for k in loaded_classes:
+                        c = None
+                        for v in ['commandline', 'expression', 'workflow']:
+                            if v in k:
+                                c = k[v]
+                        if c is not None:
+                            if c['id'] == i['run']['path'][1:]:
+                                found = k
+                    if found is not None:
+                        i['run'] = found
+                else:
+                    new_path = os.path.join(os.path.dirname(doc_path), i['run']['path'] )
+                    new_class = load(new_path, resolve=True)
+                    if doc['class'] == "CommandLineTool":
+                        i['run'] = { "commandline" : to_dict(new_class) }
+                    if doc['class'] == "ExpressionTool":
+                        i['run'] = { "expression" : to_dict(new_class) }
+                    if doc['class'] == "Workflow":
+                        i['run'] = { "workflow" : to_dict(new_class) }
+    return doc
+            
 MUTATORS = {
     "CommandLineTool" : prep_CommandLineTool
 }
@@ -213,7 +246,7 @@ def prep_doc(doc):
     #print json.dumps(doc, indent=4)
     return doc
 
-def load(path):
+def load(path, resolve=False):
     with open(path) as handle:
         data = handle.read()
         doc = yaml.load(data)
@@ -228,7 +261,15 @@ def load(path):
                 graph.append( {"expression" : idoc} )
             if idoc['class'] == "Workflow":
                 graph.append( {"workflow" : idoc} )
+        if resolve:
+            rgraph = []
+            for idoc in graph:
+                if 'workflow' in idoc:
+                    idoc['workflow'] = resolve_Workflow(idoc['workflow'], path, graph)
+                rgraph.append(idoc)
+            graph = rgraph
         newdoc = { "cwlVersion" : doc['cwlVersion'], "graph" : graph }
+        #print json.dumps(newdoc, indent=4)
         out = GraphRecord()
         ParseDict(newdoc, out)
     else:
@@ -238,9 +279,15 @@ def load(path):
         if doc['class'] == "ExpressionTool":
             out = ExpressionTool()
         if doc['class'] == "Workflow":
+            if resolve:
+                doc = resolve_Workflow(doc, path, [])
             out = Workflow()
-        ParseDict(doc, out)
-    
+        try:
+            ParseDict(doc, out)
+        except ParseError, e:
+            sys.stderr.write("In doc:\n%s\n" % json.dumps(doc, indent=4))
+            sys.stderr.write("Error: %s" % (e))
+            raise e
     return out
 
 def to_dict(pb):

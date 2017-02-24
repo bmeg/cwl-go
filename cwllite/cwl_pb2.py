@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='cwl.proto',
   package='',
   syntax='proto3',
-  serialized_pb=b'\n\tcwl.proto\x1a\x1cgoogle/protobuf/struct.proto\")\n\x0b\x41rrayRecord\x12\x1a\n\x05items\x18\x01 \x01(\x0b\x32\x0b.TypeRecord\"6\n\x0b\x46ieldRecord\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x19\n\x04type\x18\x02 \x01(\x0b\x32\x0b.TypeRecord\":\n\x0cRecordRecord\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x1c\n\x06\x66ields\x18\x02 \x03(\x0b\x32\x0c.FieldRecord\")\n\x0bOneOfRecord\x12\x1a\n\x05types\x18\x01 \x03(\x0b\x32\x0b.TypeRecord\"\x83\x01\n\nTypeRecord\x12\x0e\n\x04name\x18\x01 \x01(\tH\x00\x12\x1d\n\x05\x61rray\x18\x02 \x01(\x0b\x32\x0c.ArrayRecordH\x00\x12\x1d\n\x05oneof\x18\x03 \x01(\x0b\x32\x0c.OneOfRecordH\x00\x12\x1f\n\x06record\x18\x04 \x01(\x0b\x32\r.RecordRecordH\x00\x42\x06\n\x04type\"\x91\x01\n\tRunRecord\x12\x0e\n\x04path\x18\x01 \x01(\tH\x00\x12\'\n\x0b\x63ommandline\x18\x02 \x01(\x0b\x32\x10.CommandLineToolH\x00\x12%\n\nexpression\x18\x03 \x01(\x0b\x32\x0f.ExpressionToolH\x00\x12\x1d\n\x08workflow\x18\x04 \x01(\x0b\x32\t.WorkflowH\x00\x42\x05\n\x03run\"\xd1\x01\n\nDataRecord\x12\x16\n\x0cstring_value\x18\x01 \x01(\tH\x00\x12/\n\x0cstruct_value\x18\x02 \x01(\x0b\x32\x17.google.protobuf.StructH\x00\x12\x15\n\x0b\x66loat_value\x18\x03 \x01(\x01H\x00\x12\x13\n\tint_value\x18\x04 \x01(\x03H\x00\x12\x30\n\nlist_value\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.ListValueH\x00\x12\x14\n\nbool_value\x18\x06 \x01(\x08H\x00\x42\x06\n\x04\x64\x61ta\"\x82\x01\n\x08\x43WLClass\x12\x1d\n\x08workflow\x18\x01 \x01(\x0b\x32\t.WorkflowH\x00\x12\'\n\x0b\x63ommandline\x18\x02 \x01(\x0b\x32\x10.CommandLineToolH\x00\x12%\n\nexpression\x18\x03 \x01(\x0b\x32\x0f.ExpressionToolH\x00\x42\x07\n\x05\x63lass\";\n\x0bGraphRecord\x12\x12\n\ncwlVersion\x18\x01 \x01(\t\x12\x18\n\x05graph\x18\x02 \x03(\x0b\x32\t.CWLClass\"\x89\x01\n\x17\x43ommandInputRecordField\x12\x0b\n\x03\x64oc\x18\x01 \x03(\t\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\x19\n\x04type\x18\x03 \x01(\x0b\x32\x0b.TypeRecord\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05label\x18\x05 \x01(\t\"\x1d\n\nEnumSchema\x12\x0f\n\x07symbols\x18\x01 \x03(\t\"\xcc\x01\n\x1d\x45xpressionToolOutputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12\x0e\n\x06\x66ormat\x18\x02 \x03(\t\x12\x0b\n\x03\x64oc\x18\x03 \x03(\t\x12\r\n\x05label\x18\x04 \x01(\t\x12,\n\routputBinding\x18\x05 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x16\n\x0esecondaryFiles\x18\x06 \x03(\t\x12\x19\n\x04type\x18\x07 \x01(\x0b\x32\x0b.TypeRecord\x12\n\n\x02id\x18\x08 \x01(\t\"\x7f\n\x11WorkflowStepInput\x12(\n\x07\x64\x65\x66\x61ult\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x0e\n\x06source\x18\x02 \x03(\t\x12\x11\n\tvalueFrom\x18\x03 \x01(\t\x12\x11\n\tlinkMerge\x18\x04 \x01(\t\x12\n\n\x02id\x18\x05 \x01(\t\"@\n\x11InputRecordSchema\x12\x1c\n\x06\x66ields\x18\x01 \x03(\x0b\x32\x0c.RecordField\x12\r\n\x05label\x18\x02 \x01(\t\" \n\x12WorkflowStepOutput\x12\n\n\x02id\x18\x01 \x01(\t\"\x9c\x01\n\x12\x43ommandLineBinding\x12\x12\n\nshellQuote\x18\x01 \x01(\x08\x12\x14\n\x0cloadContents\x18\x02 \x01(\x08\x12\x10\n\x08separate\x18\x03 \x01(\x08\x12\x11\n\tvalueFrom\x18\x04 \x01(\t\x12\x0e\n\x06prefix\x18\x05 \x01(\t\x12\x15\n\ritemSeparator\x18\x06 \x01(\t\x12\x10\n\x08position\x18\x07 \x01(\x03\"\x96\x02\n\x08Workflow\x12\x12\n\ncwlVersion\x18\x01 \x01(\t\x12\x1f\n\x06inputs\x18\x02 \x03(\x0b\x32\x0f.InputParameter\x12-\n\x0crequirements\x18\x03 \x03(\x0b\x32\x17.google.protobuf.Struct\x12)\n\x07outputs\x18\x04 \x03(\x0b\x32\x18.WorkflowOutputParameter\x12\r\n\x05\x63lass\x18\x05 \x01(\t\x12\r\n\x05label\x18\x06 \x01(\t\x12\x1c\n\x05steps\x18\x07 \x03(\x0b\x32\r.WorkflowStep\x12\x0b\n\x03\x64oc\x18\x08 \x03(\t\x12\n\n\x02id\x18\t \x01(\t\x12&\n\x05hints\x18\n \x03(\x0b\x32\x17.google.protobuf.Struct\"\x82\x01\n\x10InputRecordField\x12\x0b\n\x03\x64oc\x18\x01 \x03(\t\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\x19\n\x04type\x18\x03 \x01(\x0b\x32\x0b.TypeRecord\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05label\x18\x05 \x01(\t\"g\n\x17\x43ommandOutputEnumSchema\x12\x0f\n\x07symbols\x18\x01 \x03(\t\x12,\n\routputBinding\x18\x02 \x01(\x0b\x32\x15.CommandOutputBinding\x12\r\n\x05label\x18\x03 \x01(\t\"`\n\x10OutputEnumSchema\x12\x0f\n\x07symbols\x18\x01 \x03(\t\x12,\n\routputBinding\x18\x02 \x01(\x0b\x32\x15.CommandOutputBinding\x12\r\n\x05label\x18\x03 \x01(\t\"\xef\x01\n\x17WorkflowOutputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12\x0e\n\x06\x66ormat\x18\x02 \x03(\t\x12\x0b\n\x03\x64oc\x18\x03 \x03(\t\x12\x14\n\x0coutputSource\x18\x04 \x03(\t\x12\x11\n\tlinkMerge\x18\x05 \x01(\t\x12\r\n\x05label\x18\x06 \x01(\t\x12,\n\routputBinding\x18\x07 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x16\n\x0esecondaryFiles\x18\x08 \x03(\t\x12\x19\n\x04type\x18\t \x01(\x0b\x32\x0b.TypeRecord\x12\n\n\x02id\x18\n \x01(\t\"C\n\x0bRecordField\x12\x0b\n\x03\x64oc\x18\x01 \x03(\t\x12\x19\n\x04type\x18\x02 \x01(\x0b\x32\x0b.TypeRecord\x12\x0c\n\x04name\x18\x03 \x01(\t\"C\n\x1bInlineJavascriptRequirement\x12\r\n\x05\x63lass\x18\x01 \x01(\t\x12\x15\n\rexpressionLib\x18\x02 \x03(\t\",\n\x0cRecordSchema\x12\x1c\n\x06\x66ields\x18\x01 \x03(\x0b\x32\x0c.RecordField\"G\n\x18\x43ommandInputRecordSchema\x12\x1c\n\x06\x66ields\x18\x01 \x03(\x0b\x32\x0c.RecordField\x12\r\n\x05label\x18\x02 \x01(\t\"\xa3\x01\n\x0fOutputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12\x0e\n\x06\x66ormat\x18\x02 \x03(\t\x12\x0b\n\x03\x64oc\x18\x03 \x03(\t\x12\r\n\x05label\x18\x04 \x01(\t\x12,\n\routputBinding\x18\x05 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x16\n\x0esecondaryFiles\x18\x06 \x03(\t\x12\n\n\x02id\x18\x07 \x01(\t\"\x98\x02\n\x0e\x45xpressionTool\x12\x12\n\ncwlVersion\x18\x01 \x01(\t\x12\x1f\n\x06inputs\x18\x02 \x03(\x0b\x32\x0f.InputParameter\x12-\n\x0crequirements\x18\x03 \x03(\x0b\x32\x17.google.protobuf.Struct\x12/\n\x07outputs\x18\x04 \x03(\x0b\x32\x1e.ExpressionToolOutputParameter\x12\r\n\x05\x63lass\x18\x05 \x01(\t\x12\r\n\x05label\x18\x06 \x01(\t\x12\x0b\n\x03\x64oc\x18\x07 \x03(\t\x12\x12\n\nexpression\x18\x08 \x01(\t\x12\n\n\x02id\x18\t \x01(\t\x12&\n\x05hints\x18\n \x03(\x0b\x32\x17.google.protobuf.Struct\"N\n\x14\x43ommandOutputBinding\x12\x0c\n\x04glob\x18\x01 \x03(\t\x12\x14\n\x0cloadContents\x18\x02 \x01(\x08\x12\x12\n\noutputEval\x18\x03 \x01(\t\"\xbf\x03\n\x0f\x43ommandLineTool\x12\x12\n\ncwlVersion\x18\x01 \x01(\t\x12&\n\x06inputs\x18\x02 \x03(\x0b\x32\x16.CommandInputParameter\x12\x1a\n\x12permanentFailCodes\x18\x03 \x03(\x03\x12-\n\x0crequirements\x18\x04 \x03(\x0b\x32\x17.google.protobuf.Struct\x12\x14\n\x0csuccessCodes\x18\x05 \x03(\x03\x12\x0e\n\x06stdout\x18\x06 \x01(\t\x12(\n\x07outputs\x18\x07 \x03(\x0b\x32\x17.CommandOutputParameter\x12\r\n\x05\x63lass\x18\x08 \x01(\t\x12\r\n\x05stdin\x18\t \x01(\t\x12\x13\n\x0b\x62\x61seCommand\x18\n \x03(\t\x12\r\n\x05label\x18\x0b \x01(\t\x12&\n\targuments\x18\x0c \x03(\x0b\x32\x13.CommandLineBinding\x12\x0e\n\x06stderr\x18\r \x01(\t\x12\x0b\n\x03\x64oc\x18\x0e \x03(\t\x12\x1a\n\x12temporaryFailCodes\x18\x0f \x03(\x03\x12\n\n\x02id\x18\x10 \x01(\t\x12&\n\x05hints\x18\x11 \x03(\x0b\x32\x17.google.protobuf.Struct\"\xc5\x01\n\x16\x43ommandOutputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12\x0e\n\x06\x66ormat\x18\x02 \x03(\t\x12\x0b\n\x03\x64oc\x18\x03 \x03(\t\x12\r\n\x05label\x18\x04 \x01(\t\x12,\n\routputBinding\x18\x05 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x16\n\x0esecondaryFiles\x18\x06 \x03(\t\x12\x19\n\x04type\x18\x07 \x01(\x0b\x32\x0b.TypeRecord\x12\n\n\x02id\x18\x08 \x01(\t\"3\n\x0e\x45nvironmentDef\x12\x0f\n\x07\x65nvName\x18\x01 \x01(\t\x12\x10\n\x08\x65nvValue\x18\x02 \x01(\t\"A\n\x12OutputRecordSchema\x12\x1c\n\x06\x66ields\x18\x01 \x03(\x0b\x32\x0c.RecordField\x12\r\n\x05label\x18\x02 \x01(\t\"\\\n\x0fInputEnumSchema\x12\x0f\n\x07symbols\x18\x01 \x03(\t\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\r\n\x05label\x18\x03 \x01(\t\"\x90\x02\n\x0cWorkflowStep\x12-\n\x0crequirements\x18\x01 \x03(\x0b\x32\x17.google.protobuf.Struct\x12\x0b\n\x03\x64oc\x18\x02 \x03(\t\x12\r\n\x05label\x18\x03 \x01(\t\x12\x1e\n\x02in\x18\x04 \x03(\x0b\x32\x12.WorkflowStepInput\x12\x17\n\x03run\x18\x05 \x01(\x0b\x32\n.RunRecord\x12\x0f\n\x07scatter\x18\x06 \x03(\t\x12 \n\x03out\x18\x07 \x03(\x0b\x32\x13.WorkflowStepOutput\x12\x15\n\rscatterMethod\x18\x08 \x01(\t\x12\n\n\x02id\x18\t \x01(\t\x12&\n\x05hints\x18\n \x03(\x0b\x32\x17.google.protobuf.Struct\"~\n\x18\x43ommandOutputRecordField\x12\x0b\n\x03\x64oc\x18\x01 \x03(\t\x12,\n\routputBinding\x18\x02 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x19\n\x04type\x18\x03 \x01(\x0b\x32\x0b.TypeRecord\x12\x0c\n\x04name\x18\x04 \x01(\t\"\xc6\x01\n\x04\x46ile\x12\x0e\n\x06\x66ormat\x18\x01 \x03(\t\x12\x10\n\x08\x63hecksum\x18\x02 \x01(\t\x12\x10\n\x08\x62\x61sename\x18\x03 \x01(\t\x12\x0f\n\x07nameext\x18\x04 \x01(\t\x12\x10\n\x08nameroot\x18\x05 \x01(\t\x12\x10\n\x08location\x18\x06 \x01(\t\x12\x16\n\x0esecondaryFiles\x18\x07 \x03(\t\x12\x0c\n\x04path\x18\x08 \x01(\t\x12\x0f\n\x07\x64irname\x18\t \x01(\t\x12\x10\n\x08\x63ontents\x18\n \x01(\t\x12\x0c\n\x04size\x18\x0b \x01(\x03\"\xe4\x01\n\x0eInputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\x0e\n\x06\x66ormat\x18\x03 \x03(\t\x12(\n\x07\x64\x65\x66\x61ult\x18\x04 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x0b\n\x03\x64oc\x18\x05 \x03(\t\x12\r\n\x05label\x18\x06 \x01(\t\x12\x16\n\x0esecondaryFiles\x18\x07 \x03(\t\x12\x19\n\x04type\x18\x08 \x01(\x0b\x32\x0b.TypeRecord\x12\n\n\x02id\x18\t \x01(\t\"w\n\x11OutputRecordField\x12\x0b\n\x03\x64oc\x18\x01 \x03(\t\x12,\n\routputBinding\x18\x02 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x19\n\x04type\x18\x03 \x01(\x0b\x32\x0b.TypeRecord\x12\x0c\n\x04name\x18\x04 \x01(\t\"H\n\x19\x43ommandOutputRecordSchema\x12\x1c\n\x06\x66ields\x18\x01 \x03(\x0b\x32\x0c.RecordField\x12\r\n\x05label\x18\x02 \x01(\t\"c\n\x16\x43ommandInputEnumSchema\x12\x0f\n\x07symbols\x18\x01 \x03(\t\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\r\n\x05label\x18\x03 \x01(\t\"\xdf\x01\n\x15\x43ommandInputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\x0e\n\x06\x66ormat\x18\x03 \x03(\t\x12\x1c\n\x07\x64\x65\x66\x61ult\x18\x04 \x01(\x0b\x32\x0b.DataRecord\x12\x0b\n\x03\x64oc\x18\x05 \x03(\t\x12\r\n\x05label\x18\x06 \x01(\t\x12\x16\n\x0esecondaryFiles\x18\x07 \x03(\t\x12\x19\n\x04type\x18\x08 \x01(\x0b\x32\x0b.TypeRecord\x12\n\n\x02id\x18\t \x01(\tb\x06proto3'
+  serialized_pb=b'\n\tcwl.proto\x1a\x1cgoogle/protobuf/struct.proto\")\n\x0b\x41rrayRecord\x12\x1a\n\x05items\x18\x01 \x01(\x0b\x32\x0b.TypeRecord\"6\n\x0b\x46ieldRecord\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x19\n\x04type\x18\x02 \x01(\x0b\x32\x0b.TypeRecord\":\n\x0cRecordRecord\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x1c\n\x06\x66ields\x18\x02 \x03(\x0b\x32\x0c.FieldRecord\"+\n\nEnumRecord\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07symbols\x18\x02 \x03(\t\")\n\x0bOneOfRecord\x12\x1a\n\x05types\x18\x01 \x03(\x0b\x32\x0b.TypeRecord\"\xa0\x01\n\nTypeRecord\x12\x0e\n\x04name\x18\x01 \x01(\tH\x00\x12\x1d\n\x05\x61rray\x18\x02 \x01(\x0b\x32\x0c.ArrayRecordH\x00\x12\x1d\n\x05oneof\x18\x03 \x01(\x0b\x32\x0c.OneOfRecordH\x00\x12\x1f\n\x06record\x18\x04 \x01(\x0b\x32\r.RecordRecordH\x00\x12\x1b\n\x04\x65num\x18\x05 \x01(\x0b\x32\x0b.EnumRecordH\x00\x42\x06\n\x04type\"\x91\x01\n\tRunRecord\x12\x0e\n\x04path\x18\x01 \x01(\tH\x00\x12\'\n\x0b\x63ommandline\x18\x02 \x01(\x0b\x32\x10.CommandLineToolH\x00\x12%\n\nexpression\x18\x03 \x01(\x0b\x32\x0f.ExpressionToolH\x00\x12\x1d\n\x08workflow\x18\x04 \x01(\x0b\x32\t.WorkflowH\x00\x42\x05\n\x03run\"\xd1\x01\n\nDataRecord\x12\x16\n\x0cstring_value\x18\x01 \x01(\tH\x00\x12/\n\x0cstruct_value\x18\x02 \x01(\x0b\x32\x17.google.protobuf.StructH\x00\x12\x15\n\x0b\x66loat_value\x18\x03 \x01(\x01H\x00\x12\x13\n\tint_value\x18\x04 \x01(\x03H\x00\x12\x30\n\nlist_value\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.ListValueH\x00\x12\x14\n\nbool_value\x18\x06 \x01(\x08H\x00\x42\x06\n\x04\x64\x61ta\"\x82\x01\n\x08\x43WLClass\x12\x1d\n\x08workflow\x18\x01 \x01(\x0b\x32\t.WorkflowH\x00\x12\'\n\x0b\x63ommandline\x18\x02 \x01(\x0b\x32\x10.CommandLineToolH\x00\x12%\n\nexpression\x18\x03 \x01(\x0b\x32\x0f.ExpressionToolH\x00\x42\x07\n\x05\x63lass\";\n\x0bGraphRecord\x12\x12\n\ncwlVersion\x18\x01 \x01(\t\x12\x18\n\x05graph\x18\x02 \x03(\x0b\x32\t.CWLClass\"\x89\x01\n\x17\x43ommandInputRecordField\x12\x0b\n\x03\x64oc\x18\x01 \x03(\t\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\x19\n\x04type\x18\x03 \x01(\x0b\x32\x0b.TypeRecord\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05label\x18\x05 \x01(\t\"\x1d\n\nEnumSchema\x12\x0f\n\x07symbols\x18\x01 \x03(\t\"\xcc\x01\n\x1d\x45xpressionToolOutputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12\x0e\n\x06\x66ormat\x18\x02 \x03(\t\x12\x0b\n\x03\x64oc\x18\x03 \x03(\t\x12\r\n\x05label\x18\x04 \x01(\t\x12,\n\routputBinding\x18\x05 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x16\n\x0esecondaryFiles\x18\x06 \x03(\t\x12\x19\n\x04type\x18\x07 \x01(\x0b\x32\x0b.TypeRecord\x12\n\n\x02id\x18\x08 \x01(\t\"\x7f\n\x11WorkflowStepInput\x12(\n\x07\x64\x65\x66\x61ult\x18\x01 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x0e\n\x06source\x18\x02 \x03(\t\x12\x11\n\tvalueFrom\x18\x03 \x01(\t\x12\x11\n\tlinkMerge\x18\x04 \x01(\t\x12\n\n\x02id\x18\x05 \x01(\t\"@\n\x11InputRecordSchema\x12\x1c\n\x06\x66ields\x18\x01 \x03(\x0b\x32\x0c.RecordField\x12\r\n\x05label\x18\x02 \x01(\t\" \n\x12WorkflowStepOutput\x12\n\n\x02id\x18\x01 \x01(\t\"\x9c\x01\n\x12\x43ommandLineBinding\x12\x12\n\nshellQuote\x18\x01 \x01(\x08\x12\x14\n\x0cloadContents\x18\x02 \x01(\x08\x12\x10\n\x08separate\x18\x03 \x01(\x08\x12\x11\n\tvalueFrom\x18\x04 \x01(\t\x12\x0e\n\x06prefix\x18\x05 \x01(\t\x12\x15\n\ritemSeparator\x18\x06 \x01(\t\x12\x10\n\x08position\x18\x07 \x01(\x03\"\x96\x02\n\x08Workflow\x12\x12\n\ncwlVersion\x18\x01 \x01(\t\x12\x1f\n\x06inputs\x18\x02 \x03(\x0b\x32\x0f.InputParameter\x12-\n\x0crequirements\x18\x03 \x03(\x0b\x32\x17.google.protobuf.Struct\x12)\n\x07outputs\x18\x04 \x03(\x0b\x32\x18.WorkflowOutputParameter\x12\r\n\x05\x63lass\x18\x05 \x01(\t\x12\r\n\x05label\x18\x06 \x01(\t\x12\x1c\n\x05steps\x18\x07 \x03(\x0b\x32\r.WorkflowStep\x12\x0b\n\x03\x64oc\x18\x08 \x03(\t\x12\n\n\x02id\x18\t \x01(\t\x12&\n\x05hints\x18\n \x03(\x0b\x32\x17.google.protobuf.Struct\"\x82\x01\n\x10InputRecordField\x12\x0b\n\x03\x64oc\x18\x01 \x03(\t\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\x19\n\x04type\x18\x03 \x01(\x0b\x32\x0b.TypeRecord\x12\x0c\n\x04name\x18\x04 \x01(\t\x12\r\n\x05label\x18\x05 \x01(\t\"g\n\x17\x43ommandOutputEnumSchema\x12\x0f\n\x07symbols\x18\x01 \x03(\t\x12,\n\routputBinding\x18\x02 \x01(\x0b\x32\x15.CommandOutputBinding\x12\r\n\x05label\x18\x03 \x01(\t\"`\n\x10OutputEnumSchema\x12\x0f\n\x07symbols\x18\x01 \x03(\t\x12,\n\routputBinding\x18\x02 \x01(\x0b\x32\x15.CommandOutputBinding\x12\r\n\x05label\x18\x03 \x01(\t\"\xef\x01\n\x17WorkflowOutputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12\x0e\n\x06\x66ormat\x18\x02 \x03(\t\x12\x0b\n\x03\x64oc\x18\x03 \x03(\t\x12\x14\n\x0coutputSource\x18\x04 \x03(\t\x12\x11\n\tlinkMerge\x18\x05 \x01(\t\x12\r\n\x05label\x18\x06 \x01(\t\x12,\n\routputBinding\x18\x07 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x16\n\x0esecondaryFiles\x18\x08 \x03(\t\x12\x19\n\x04type\x18\t \x01(\x0b\x32\x0b.TypeRecord\x12\n\n\x02id\x18\n \x01(\t\"C\n\x0bRecordField\x12\x0b\n\x03\x64oc\x18\x01 \x03(\t\x12\x19\n\x04type\x18\x02 \x01(\x0b\x32\x0b.TypeRecord\x12\x0c\n\x04name\x18\x03 \x01(\t\"C\n\x1bInlineJavascriptRequirement\x12\r\n\x05\x63lass\x18\x01 \x01(\t\x12\x15\n\rexpressionLib\x18\x02 \x03(\t\",\n\x0cRecordSchema\x12\x1c\n\x06\x66ields\x18\x01 \x03(\x0b\x32\x0c.RecordField\"G\n\x18\x43ommandInputRecordSchema\x12\x1c\n\x06\x66ields\x18\x01 \x03(\x0b\x32\x0c.RecordField\x12\r\n\x05label\x18\x02 \x01(\t\"\xa3\x01\n\x0fOutputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12\x0e\n\x06\x66ormat\x18\x02 \x03(\t\x12\x0b\n\x03\x64oc\x18\x03 \x03(\t\x12\r\n\x05label\x18\x04 \x01(\t\x12,\n\routputBinding\x18\x05 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x16\n\x0esecondaryFiles\x18\x06 \x03(\t\x12\n\n\x02id\x18\x07 \x01(\t\"\x98\x02\n\x0e\x45xpressionTool\x12\x12\n\ncwlVersion\x18\x01 \x01(\t\x12\x1f\n\x06inputs\x18\x02 \x03(\x0b\x32\x0f.InputParameter\x12-\n\x0crequirements\x18\x03 \x03(\x0b\x32\x17.google.protobuf.Struct\x12/\n\x07outputs\x18\x04 \x03(\x0b\x32\x1e.ExpressionToolOutputParameter\x12\r\n\x05\x63lass\x18\x05 \x01(\t\x12\r\n\x05label\x18\x06 \x01(\t\x12\x0b\n\x03\x64oc\x18\x07 \x03(\t\x12\x12\n\nexpression\x18\x08 \x01(\t\x12\n\n\x02id\x18\t \x01(\t\x12&\n\x05hints\x18\n \x03(\x0b\x32\x17.google.protobuf.Struct\"N\n\x14\x43ommandOutputBinding\x12\x0c\n\x04glob\x18\x01 \x03(\t\x12\x14\n\x0cloadContents\x18\x02 \x01(\x08\x12\x12\n\noutputEval\x18\x03 \x01(\t\"\xbf\x03\n\x0f\x43ommandLineTool\x12\x12\n\ncwlVersion\x18\x01 \x01(\t\x12&\n\x06inputs\x18\x02 \x03(\x0b\x32\x16.CommandInputParameter\x12\x1a\n\x12permanentFailCodes\x18\x03 \x03(\x03\x12-\n\x0crequirements\x18\x04 \x03(\x0b\x32\x17.google.protobuf.Struct\x12\x14\n\x0csuccessCodes\x18\x05 \x03(\x03\x12\x0e\n\x06stdout\x18\x06 \x01(\t\x12(\n\x07outputs\x18\x07 \x03(\x0b\x32\x17.CommandOutputParameter\x12\r\n\x05\x63lass\x18\x08 \x01(\t\x12\r\n\x05stdin\x18\t \x01(\t\x12\x13\n\x0b\x62\x61seCommand\x18\n \x03(\t\x12\r\n\x05label\x18\x0b \x01(\t\x12&\n\targuments\x18\x0c \x03(\x0b\x32\x13.CommandLineBinding\x12\x0e\n\x06stderr\x18\r \x01(\t\x12\x0b\n\x03\x64oc\x18\x0e \x03(\t\x12\x1a\n\x12temporaryFailCodes\x18\x0f \x03(\x03\x12\n\n\x02id\x18\x10 \x01(\t\x12&\n\x05hints\x18\x11 \x03(\x0b\x32\x17.google.protobuf.Struct\"\xc5\x01\n\x16\x43ommandOutputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12\x0e\n\x06\x66ormat\x18\x02 \x03(\t\x12\x0b\n\x03\x64oc\x18\x03 \x03(\t\x12\r\n\x05label\x18\x04 \x01(\t\x12,\n\routputBinding\x18\x05 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x16\n\x0esecondaryFiles\x18\x06 \x03(\t\x12\x19\n\x04type\x18\x07 \x01(\x0b\x32\x0b.TypeRecord\x12\n\n\x02id\x18\x08 \x01(\t\"3\n\x0e\x45nvironmentDef\x12\x0f\n\x07\x65nvName\x18\x01 \x01(\t\x12\x10\n\x08\x65nvValue\x18\x02 \x01(\t\"A\n\x12OutputRecordSchema\x12\x1c\n\x06\x66ields\x18\x01 \x03(\x0b\x32\x0c.RecordField\x12\r\n\x05label\x18\x02 \x01(\t\"\\\n\x0fInputEnumSchema\x12\x0f\n\x07symbols\x18\x01 \x03(\t\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\r\n\x05label\x18\x03 \x01(\t\"\x90\x02\n\x0cWorkflowStep\x12-\n\x0crequirements\x18\x01 \x03(\x0b\x32\x17.google.protobuf.Struct\x12\x0b\n\x03\x64oc\x18\x02 \x03(\t\x12\r\n\x05label\x18\x03 \x01(\t\x12\x1e\n\x02in\x18\x04 \x03(\x0b\x32\x12.WorkflowStepInput\x12\x17\n\x03run\x18\x05 \x01(\x0b\x32\n.RunRecord\x12\x0f\n\x07scatter\x18\x06 \x03(\t\x12 \n\x03out\x18\x07 \x03(\x0b\x32\x13.WorkflowStepOutput\x12\x15\n\rscatterMethod\x18\x08 \x01(\t\x12\n\n\x02id\x18\t \x01(\t\x12&\n\x05hints\x18\n \x03(\x0b\x32\x17.google.protobuf.Struct\"~\n\x18\x43ommandOutputRecordField\x12\x0b\n\x03\x64oc\x18\x01 \x03(\t\x12,\n\routputBinding\x18\x02 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x19\n\x04type\x18\x03 \x01(\x0b\x32\x0b.TypeRecord\x12\x0c\n\x04name\x18\x04 \x01(\t\"\xc6\x01\n\x04\x46ile\x12\x0e\n\x06\x66ormat\x18\x01 \x03(\t\x12\x10\n\x08\x63hecksum\x18\x02 \x01(\t\x12\x10\n\x08\x62\x61sename\x18\x03 \x01(\t\x12\x0f\n\x07nameext\x18\x04 \x01(\t\x12\x10\n\x08nameroot\x18\x05 \x01(\t\x12\x10\n\x08location\x18\x06 \x01(\t\x12\x16\n\x0esecondaryFiles\x18\x07 \x03(\t\x12\x0c\n\x04path\x18\x08 \x01(\t\x12\x0f\n\x07\x64irname\x18\t \x01(\t\x12\x10\n\x08\x63ontents\x18\n \x01(\t\x12\x0c\n\x04size\x18\x0b \x01(\x03\"\xe4\x01\n\x0eInputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\x0e\n\x06\x66ormat\x18\x03 \x03(\t\x12(\n\x07\x64\x65\x66\x61ult\x18\x04 \x01(\x0b\x32\x17.google.protobuf.Struct\x12\x0b\n\x03\x64oc\x18\x05 \x03(\t\x12\r\n\x05label\x18\x06 \x01(\t\x12\x16\n\x0esecondaryFiles\x18\x07 \x03(\t\x12\x19\n\x04type\x18\x08 \x01(\x0b\x32\x0b.TypeRecord\x12\n\n\x02id\x18\t \x01(\t\"w\n\x11OutputRecordField\x12\x0b\n\x03\x64oc\x18\x01 \x03(\t\x12,\n\routputBinding\x18\x02 \x01(\x0b\x32\x15.CommandOutputBinding\x12\x19\n\x04type\x18\x03 \x01(\x0b\x32\x0b.TypeRecord\x12\x0c\n\x04name\x18\x04 \x01(\t\"H\n\x19\x43ommandOutputRecordSchema\x12\x1c\n\x06\x66ields\x18\x01 \x03(\x0b\x32\x0c.RecordField\x12\r\n\x05label\x18\x02 \x01(\t\"c\n\x16\x43ommandInputEnumSchema\x12\x0f\n\x07symbols\x18\x01 \x03(\t\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\r\n\x05label\x18\x03 \x01(\t\"\xdf\x01\n\x15\x43ommandInputParameter\x12\x12\n\nstreamable\x18\x01 \x01(\x08\x12)\n\x0cinputBinding\x18\x02 \x01(\x0b\x32\x13.CommandLineBinding\x12\x0e\n\x06\x66ormat\x18\x03 \x03(\t\x12\x1c\n\x07\x64\x65\x66\x61ult\x18\x04 \x01(\x0b\x32\x0b.DataRecord\x12\x0b\n\x03\x64oc\x18\x05 \x03(\t\x12\r\n\x05label\x18\x06 \x01(\t\x12\x16\n\x0esecondaryFiles\x18\x07 \x03(\t\x12\x19\n\x04type\x18\x08 \x01(\x0b\x32\x0b.TypeRecord\x12\n\n\x02id\x18\t \x01(\tb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_struct__pb2.DESCRIPTOR,])
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -133,6 +133,44 @@ _RECORDRECORD = _descriptor.Descriptor(
 )
 
 
+_ENUMRECORD = _descriptor.Descriptor(
+  name='EnumRecord',
+  full_name='EnumRecord',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='name', full_name='EnumRecord.name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+    _descriptor.FieldDescriptor(
+      name='symbols', full_name='EnumRecord.symbols', index=1,
+      number=2, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=202,
+  serialized_end=245,
+)
+
+
 _ONEOFRECORD = _descriptor.Descriptor(
   name='OneOfRecord',
   full_name='OneOfRecord',
@@ -159,8 +197,8 @@ _ONEOFRECORD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=202,
-  serialized_end=243,
+  serialized_start=247,
+  serialized_end=288,
 )
 
 
@@ -199,6 +237,13 @@ _TYPERECORD = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
+    _descriptor.FieldDescriptor(
+      name='enum', full_name='TypeRecord.enum', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None),
   ],
   extensions=[
   ],
@@ -214,8 +259,8 @@ _TYPERECORD = _descriptor.Descriptor(
       name='type', full_name='TypeRecord.type',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=246,
-  serialized_end=377,
+  serialized_start=291,
+  serialized_end=451,
 )
 
 
@@ -269,8 +314,8 @@ _RUNRECORD = _descriptor.Descriptor(
       name='run', full_name='RunRecord.run',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=380,
-  serialized_end=525,
+  serialized_start=454,
+  serialized_end=599,
 )
 
 
@@ -338,8 +383,8 @@ _DATARECORD = _descriptor.Descriptor(
       name='data', full_name='DataRecord.data',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=528,
-  serialized_end=737,
+  serialized_start=602,
+  serialized_end=811,
 )
 
 
@@ -386,8 +431,8 @@ _CWLCLASS = _descriptor.Descriptor(
       name='class', full_name='CWLClass.class',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=740,
-  serialized_end=870,
+  serialized_start=814,
+  serialized_end=944,
 )
 
 
@@ -424,8 +469,8 @@ _GRAPHRECORD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=872,
-  serialized_end=931,
+  serialized_start=946,
+  serialized_end=1005,
 )
 
 
@@ -483,8 +528,8 @@ _COMMANDINPUTRECORDFIELD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=934,
-  serialized_end=1071,
+  serialized_start=1008,
+  serialized_end=1145,
 )
 
 
@@ -514,8 +559,8 @@ _ENUMSCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1073,
-  serialized_end=1102,
+  serialized_start=1147,
+  serialized_end=1176,
 )
 
 
@@ -594,8 +639,8 @@ _EXPRESSIONTOOLOUTPUTPARAMETER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1105,
-  serialized_end=1309,
+  serialized_start=1179,
+  serialized_end=1383,
 )
 
 
@@ -653,8 +698,8 @@ _WORKFLOWSTEPINPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1311,
-  serialized_end=1438,
+  serialized_start=1385,
+  serialized_end=1512,
 )
 
 
@@ -691,8 +736,8 @@ _INPUTRECORDSCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1440,
-  serialized_end=1504,
+  serialized_start=1514,
+  serialized_end=1578,
 )
 
 
@@ -722,8 +767,8 @@ _WORKFLOWSTEPOUTPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1506,
-  serialized_end=1538,
+  serialized_start=1580,
+  serialized_end=1612,
 )
 
 
@@ -795,8 +840,8 @@ _COMMANDLINEBINDING = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1541,
-  serialized_end=1697,
+  serialized_start=1615,
+  serialized_end=1771,
 )
 
 
@@ -889,8 +934,8 @@ _WORKFLOW = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1700,
-  serialized_end=1978,
+  serialized_start=1774,
+  serialized_end=2052,
 )
 
 
@@ -948,8 +993,8 @@ _INPUTRECORDFIELD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1981,
-  serialized_end=2111,
+  serialized_start=2055,
+  serialized_end=2185,
 )
 
 
@@ -993,8 +1038,8 @@ _COMMANDOUTPUTENUMSCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2113,
-  serialized_end=2216,
+  serialized_start=2187,
+  serialized_end=2290,
 )
 
 
@@ -1038,8 +1083,8 @@ _OUTPUTENUMSCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2218,
-  serialized_end=2314,
+  serialized_start=2292,
+  serialized_end=2388,
 )
 
 
@@ -1132,8 +1177,8 @@ _WORKFLOWOUTPUTPARAMETER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2317,
-  serialized_end=2556,
+  serialized_start=2391,
+  serialized_end=2630,
 )
 
 
@@ -1177,8 +1222,8 @@ _RECORDFIELD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2558,
-  serialized_end=2625,
+  serialized_start=2632,
+  serialized_end=2699,
 )
 
 
@@ -1215,8 +1260,8 @@ _INLINEJAVASCRIPTREQUIREMENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2627,
-  serialized_end=2694,
+  serialized_start=2701,
+  serialized_end=2768,
 )
 
 
@@ -1246,8 +1291,8 @@ _RECORDSCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2696,
-  serialized_end=2740,
+  serialized_start=2770,
+  serialized_end=2814,
 )
 
 
@@ -1284,8 +1329,8 @@ _COMMANDINPUTRECORDSCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2742,
-  serialized_end=2813,
+  serialized_start=2816,
+  serialized_end=2887,
 )
 
 
@@ -1357,8 +1402,8 @@ _OUTPUTPARAMETER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2816,
-  serialized_end=2979,
+  serialized_start=2890,
+  serialized_end=3053,
 )
 
 
@@ -1451,8 +1496,8 @@ _EXPRESSIONTOOL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2982,
-  serialized_end=3262,
+  serialized_start=3056,
+  serialized_end=3336,
 )
 
 
@@ -1496,8 +1541,8 @@ _COMMANDOUTPUTBINDING = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3264,
-  serialized_end=3342,
+  serialized_start=3338,
+  serialized_end=3416,
 )
 
 
@@ -1639,8 +1684,8 @@ _COMMANDLINETOOL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3345,
-  serialized_end=3792,
+  serialized_start=3419,
+  serialized_end=3866,
 )
 
 
@@ -1719,8 +1764,8 @@ _COMMANDOUTPUTPARAMETER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3795,
-  serialized_end=3992,
+  serialized_start=3869,
+  serialized_end=4066,
 )
 
 
@@ -1757,8 +1802,8 @@ _ENVIRONMENTDEF = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3994,
-  serialized_end=4045,
+  serialized_start=4068,
+  serialized_end=4119,
 )
 
 
@@ -1795,8 +1840,8 @@ _OUTPUTRECORDSCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4047,
-  serialized_end=4112,
+  serialized_start=4121,
+  serialized_end=4186,
 )
 
 
@@ -1840,8 +1885,8 @@ _INPUTENUMSCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4114,
-  serialized_end=4206,
+  serialized_start=4188,
+  serialized_end=4280,
 )
 
 
@@ -1934,8 +1979,8 @@ _WORKFLOWSTEP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4209,
-  serialized_end=4481,
+  serialized_start=4283,
+  serialized_end=4555,
 )
 
 
@@ -1986,8 +2031,8 @@ _COMMANDOUTPUTRECORDFIELD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4483,
-  serialized_end=4609,
+  serialized_start=4557,
+  serialized_end=4683,
 )
 
 
@@ -2087,8 +2132,8 @@ _FILE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4612,
-  serialized_end=4810,
+  serialized_start=4686,
+  serialized_end=4884,
 )
 
 
@@ -2174,8 +2219,8 @@ _INPUTPARAMETER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4813,
-  serialized_end=5041,
+  serialized_start=4887,
+  serialized_end=5115,
 )
 
 
@@ -2226,8 +2271,8 @@ _OUTPUTRECORDFIELD = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5043,
-  serialized_end=5162,
+  serialized_start=5117,
+  serialized_end=5236,
 )
 
 
@@ -2264,8 +2309,8 @@ _COMMANDOUTPUTRECORDSCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5164,
-  serialized_end=5236,
+  serialized_start=5238,
+  serialized_end=5310,
 )
 
 
@@ -2309,8 +2354,8 @@ _COMMANDINPUTENUMSCHEMA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5238,
-  serialized_end=5337,
+  serialized_start=5312,
+  serialized_end=5411,
 )
 
 
@@ -2396,8 +2441,8 @@ _COMMANDINPUTPARAMETER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5340,
-  serialized_end=5563,
+  serialized_start=5414,
+  serialized_end=5637,
 )
 
 _ARRAYRECORD.fields_by_name['items'].message_type = _TYPERECORD
@@ -2407,6 +2452,7 @@ _ONEOFRECORD.fields_by_name['types'].message_type = _TYPERECORD
 _TYPERECORD.fields_by_name['array'].message_type = _ARRAYRECORD
 _TYPERECORD.fields_by_name['oneof'].message_type = _ONEOFRECORD
 _TYPERECORD.fields_by_name['record'].message_type = _RECORDRECORD
+_TYPERECORD.fields_by_name['enum'].message_type = _ENUMRECORD
 _TYPERECORD.oneofs_by_name['type'].fields.append(
   _TYPERECORD.fields_by_name['name'])
 _TYPERECORD.fields_by_name['name'].containing_oneof = _TYPERECORD.oneofs_by_name['type']
@@ -2419,6 +2465,9 @@ _TYPERECORD.fields_by_name['oneof'].containing_oneof = _TYPERECORD.oneofs_by_nam
 _TYPERECORD.oneofs_by_name['type'].fields.append(
   _TYPERECORD.fields_by_name['record'])
 _TYPERECORD.fields_by_name['record'].containing_oneof = _TYPERECORD.oneofs_by_name['type']
+_TYPERECORD.oneofs_by_name['type'].fields.append(
+  _TYPERECORD.fields_by_name['enum'])
+_TYPERECORD.fields_by_name['enum'].containing_oneof = _TYPERECORD.oneofs_by_name['type']
 _RUNRECORD.fields_by_name['commandline'].message_type = _COMMANDLINETOOL
 _RUNRECORD.fields_by_name['expression'].message_type = _EXPRESSIONTOOL
 _RUNRECORD.fields_by_name['workflow'].message_type = _WORKFLOW
@@ -2521,6 +2570,7 @@ _COMMANDINPUTPARAMETER.fields_by_name['type'].message_type = _TYPERECORD
 DESCRIPTOR.message_types_by_name['ArrayRecord'] = _ARRAYRECORD
 DESCRIPTOR.message_types_by_name['FieldRecord'] = _FIELDRECORD
 DESCRIPTOR.message_types_by_name['RecordRecord'] = _RECORDRECORD
+DESCRIPTOR.message_types_by_name['EnumRecord'] = _ENUMRECORD
 DESCRIPTOR.message_types_by_name['OneOfRecord'] = _ONEOFRECORD
 DESCRIPTOR.message_types_by_name['TypeRecord'] = _TYPERECORD
 DESCRIPTOR.message_types_by_name['RunRecord'] = _RUNRECORD
@@ -2580,6 +2630,13 @@ RecordRecord = _reflection.GeneratedProtocolMessageType('RecordRecord', (_messag
   # @@protoc_insertion_point(class_scope:RecordRecord)
   ))
 _sym_db.RegisterMessage(RecordRecord)
+
+EnumRecord = _reflection.GeneratedProtocolMessageType('EnumRecord', (_message.Message,), dict(
+  DESCRIPTOR = _ENUMRECORD,
+  __module__ = 'cwl_pb2'
+  # @@protoc_insertion_point(class_scope:EnumRecord)
+  ))
+_sym_db.RegisterMessage(EnumRecord)
 
 OneOfRecord = _reflection.GeneratedProtocolMessageType('OneOfRecord', (_message.Message,), dict(
   DESCRIPTOR = _ONEOFRECORD,

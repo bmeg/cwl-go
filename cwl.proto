@@ -17,6 +17,11 @@ message RecordRecord {
     repeated FieldRecord fields = 2;
 }
 
+message EnumRecord {
+    string name = 1;
+    repeated string symbols = 2;
+}
+
 message OneOfRecord {
     repeated TypeRecord types = 1;
 }
@@ -27,6 +32,7 @@ message TypeRecord {
         ArrayRecord array = 2;
         OneOfRecord oneof = 3;
         RecordRecord record = 4;
+        EnumRecord enum = 5;
     }
 }
 
