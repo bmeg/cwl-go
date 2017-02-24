@@ -249,7 +249,7 @@ def prep_doc(doc):
     #print json.dumps(doc, indent=4)
     return doc
 
-def load(path, resolve=False):
+def load_cwl(path, resolve=False):
     with open(path) as handle:
         data = handle.read()
         doc = yaml.load(data)
@@ -293,5 +293,87 @@ def load(path, resolve=False):
             raise e
     return out
 
+def load_proto(path):
+    with open(path) as handle:
+        data = handle.read()
+    doc = yaml.load(data)
+    if doc['class'] == "CommandLineTool":
+        out = CommandLineTool()
+    if doc['class'] == "ExpressionTool":
+        out = ExpressionTool()
+    if doc['class'] == "Workflow":
+        out = Workflow()
+    ParseDict(doc, out)
+    return out
+
 def to_dict(pb):
     return MessageToDict(pb)
+
+############################
+
+def cwl_TypeRecord(pb):
+    if pb.WhichOneof("type") == "name":
+        return pb.name
+    if pb.WhichOneof("type") == "array":
+        return {"type" : "array", "items" : cwl_TypeRecord( pb.array.items ) }
+    if pb.WhichOneof("type") == "oneof":
+        out = []
+        for i in pb.oneof.types:
+            out.append(cwl_TypeRecord(i))
+        return out
+    if pb.WhichOneof("type") == "enum":
+        return { "name" : pb.enum.name, "symbols" : pb.enum.symbols }
+
+def cwl_DataRecord(pb):
+    if pb.WhichOneof("data") == "string_value":
+        return pb.string_value
+    if pb.WhichOneof("data") == "float_value":
+        return pb.float_value
+    if pb.WhichOneof("data") == "int_value":
+        return pb.int_value
+    if pb.WhichOneof("data") == "bool_value":
+        return pb.bool_value
+    if pb.WhichOneof("data") == "list_value":
+        return to_dict(pb.list_value)
+    if pb.WhichOneof("data") == "struct_value":
+        return to_dict(pb.struct_value)
+
+def cwl_Workflow(pb):
+    return to_dict(pb)
+
+def cwl_CommandLineTool(pb):
+    doc = to_dict(pb)
+    inputs = []
+    for i in pb.inputs:
+        inputs.append(to_cwl(i))
+    doc['inputs'] = inputs
+    outputs = []
+    for i in pb.outputs:
+        outputs.append(to_cwl(i))
+    doc['outputs'] = outputs
+
+    return doc
+
+def cwl_CommandInputParameter(pb):
+    doc = to_dict(pb)
+    if 'type' in doc:
+        doc['type'] = cwl_TypeRecord(pb.type)
+    if 'default' in doc:
+        doc['default'] = cwl_DataRecord(pb.default)
+    return doc
+
+def cwl_CommandOutputParameter(pb):
+    doc = to_dict(pb)
+    if 'type' in doc:
+        doc['type'] = cwl_TypeRecord(pb.type)
+    return doc
+
+PB2CWL = {
+    "Workflow" : cwl_Workflow,
+    "CommandLineTool" : cwl_CommandLineTool,
+    "CommandInputParameter" : cwl_CommandInputParameter,
+    "CommandOutputParameter" : cwl_CommandOutputParameter,
+}
+
+def to_cwl(pb):
+    return PB2CWL[pb.DESCRIPTOR.name](pb)

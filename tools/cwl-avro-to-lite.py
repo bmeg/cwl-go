@@ -29,7 +29,7 @@ TYPE_MAPPING = {
     "Any" : "google.protobuf.Struct",
     "boolean" : "bool",
     "long" : "int64",
-    "int" : "int64",
+    "int" : "int32",
     "CWLVersion" : "string",
     "LinkMergeMethod" : "string",
     "ScatterMethod" : "string"
