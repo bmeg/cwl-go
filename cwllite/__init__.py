@@ -74,7 +74,7 @@ def prep_DataRecord(doc):
     if isinstance(doc, int):
         return {"int_value" : doc}
     return doc
-    
+
 def prep_InputRecordField(doc):
     doc = fields_forcelist(doc, "doc")
     doc['type'] = prep_TypeRecord(doc['type'])
@@ -89,7 +89,7 @@ def prep_OutputRecordField(doc):
         doc['outputBinding'] = prep_CommandOutputBinding(doc['outputBinding'])
     #if 'outputSource' in doc:
     #    doc['outputBinding'] = prep_CommandOutputBinding(doc['outputBinding'])
-        
+
     return doc
 
 def prep_CommandOutputBinding(doc):
@@ -133,7 +133,9 @@ def prep_WorkflowStepOutput_list(doc):
 def prep_WorkflowStepInput(doc):
     #if isinstance(doc, basestring):
     #    return {"source" : [doc]}
-    doc = fields_forcelist(doc, "source") 
+    doc = fields_forcelist(doc, "source")
+    if 'default' in doc:
+        doc['default'] = prep_DataRecord(doc['default'])
     return doc
 
 def prep_WorkflowStepInput_list(doc):
@@ -164,7 +166,7 @@ def prep_WorkflowStep(doc):
     if "in" in doc:
         doc = fields_dict2list(doc, "in", field="source")
         doc["in"] = prep_WorkflowStepInput_list(doc["in"])
-        
+
     return doc
 
 def prep_WorkflowStep_list(doc):
@@ -172,7 +174,7 @@ def prep_WorkflowStep_list(doc):
     for i in doc:
         out.append(prep_WorkflowStep(i))
     return out
-    
+
 
 def prep_CommandLineTool(doc):
     doc = fields_dict2list(doc, "inputs", "outputs", "hints", "requirements", field="type")
@@ -224,14 +226,15 @@ def resolve_Workflow(doc, doc_path, loaded_classes):
                 else:
                     new_path = os.path.join(os.path.dirname(doc_path), i['run']['path'] )
                     new_class = load(new_path, resolve=True)
-                    if doc['class'] == "CommandLineTool":
-                        i['run'] = { "commandline" : to_dict(new_class) }
-                    if doc['class'] == "ExpressionTool":
-                        i['run'] = { "expression" : to_dict(new_class) }
-                    if doc['class'] == "Workflow":
-                        i['run'] = { "workflow" : to_dict(new_class) }
+                    new_doc = to_dict(new_class)
+                    if new_doc['class'] == "CommandLineTool":
+                        i['run'] = { "commandline" : new_doc }
+                    if new_doc['class'] == "ExpressionTool":
+                        i['run'] = { "expression" : new_doc }
+                    if new_doc['class'] == "Workflow":
+                        i['run'] = { "workflow" : new_doc }
     return doc
-            
+
 MUTATORS = {
     "CommandLineTool" : prep_CommandLineTool
 }
@@ -250,7 +253,7 @@ def load(path, resolve=False):
     with open(path) as handle:
         data = handle.read()
         doc = yaml.load(data)
-    
+
     if "$graph" in doc:
         graph = []
         for idoc in doc["$graph"]:
